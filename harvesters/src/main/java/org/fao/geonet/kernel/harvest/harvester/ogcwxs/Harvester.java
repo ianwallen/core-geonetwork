@@ -50,7 +50,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.GeonetContext;
 import org.fao.geonet.Logger;
-import org.fao.geonet.api.records.attachments.FilesystemStore;
+import org.fao.geonet.api.records.attachments.Store;
 import org.fao.geonet.constants.Geonet;
 import org.fao.geonet.domain.AbstractMetadata;
 import org.fao.geonet.domain.Metadata;
@@ -89,6 +89,7 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 import org.jdom.xpath.XPath;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpResponse;
 
@@ -928,8 +929,8 @@ class Harvester extends BaseAligner<OgcWxSParams> implements IHarvester<HarvestR
         try {
             Path filename = getMapThumbnail(layer);
 
-            // Add downloaded file to metadata store
-            FilesystemStore store = new FilesystemStore();
+            ApplicationContext applicationContext = ApplicationContextHolder.get();
+            Store store = (Store)applicationContext.getBean("filesystemStore").getClass().newInstance();
             try {
                 store.delResource(context, layer.uuid, filename.getFileName().toString());
             } catch (Exception e) {}

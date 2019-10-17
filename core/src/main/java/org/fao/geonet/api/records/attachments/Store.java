@@ -96,7 +96,7 @@ public interface Store {
     List<MetadataResource> getResources(ServiceContext context, String metadataUuid, MetadataResourceVisibility metadataResourceVisibility, String filter, Boolean approved) throws Exception;
 
     /**
-     * Retrieve a metadata resource path.
+     * Retrieve a metadata resource.
      *
      *
      * @param context
@@ -104,8 +104,8 @@ public interface Store {
      * @param resourceId   The resource identifier
      * @return The resource
      */
-	@Deprecated
-    Path getResource(ServiceContext context, String metadataUuid, String resourceId) throws Exception;
+    @Deprecated
+    MetadataResource getResource(ServiceContext context, String metadataUuid, String resourceId) throws Exception;
 
     /**
      * Retrieve a metadata resource path.
@@ -117,7 +117,7 @@ public interface Store {
      * @param approved   Return the approved version or not
      * @return The resource
      */
-    Path getResource(ServiceContext context, String metadataUuid, String resourceId, Boolean approved) throws Exception;
+    MetadataResource getResource(ServiceContext context, String metadataUuid, String resourceId, Boolean approved) throws Exception;
 
     /**
      * Add a new resource from a file.

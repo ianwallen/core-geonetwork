@@ -83,16 +83,16 @@ public class ResourceLoggerStore implements Store {
     }
 
     @Override
-    public Path getResource(ServiceContext context, String metadataUuid, String resourceId, Boolean approved) throws Exception {
+    public MetadataResource getResource(ServiceContext context, String metadataUuid, String resourceId, Boolean approved) throws Exception {
         if (decoratedStore != null) {
-            Path filePath = decoratedStore.getResource(context, metadataUuid, resourceId, approved);
-            if (filePath != null) {
+            MetadataResource metadataResource = decoratedStore.getResource(context, metadataUuid, resourceId);
+            if (metadataResource != null) {
                 // TODO: Add Requester details which may have been provided by a form ?
                 storeGetRequest(context, metadataUuid, resourceId,
                     "", "", "", "",
                     new ISODate().toString());
             }
-            return filePath;
+            return metadataResource;
         }
         return null;
     }
@@ -260,7 +260,7 @@ public class ResourceLoggerStore implements Store {
 	public List<MetadataResource> getResources(ServiceContext context, String metadataUuid, Sort sort, String filter)
 			throws Exception {
 		return getResources(context, metadataUuid, sort, filter, true);
-	}
+}
 
 	@Override
 	public List<MetadataResource> getResources(ServiceContext context, String metadataUuid,
@@ -269,7 +269,7 @@ public class ResourceLoggerStore implements Store {
 	}
 
 	@Override
-	public Path getResource(ServiceContext context, String metadataUuid, String resourceId) throws Exception {
+	public MetadataResource getResource(ServiceContext context, String metadataUuid, String resourceId) throws Exception {
 		return getResource(context, metadataUuid, resourceId, true);
 	}
 

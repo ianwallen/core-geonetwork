@@ -47,7 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.fao.geonet.api.records.attachments.AttachmentsApi.getFileContentType;
+import static org.fao.geonet.resources.Resources.getFileContentType;
 
 public class DefaultResourceDownloadHandler implements IResourceDownloadHandler {
 

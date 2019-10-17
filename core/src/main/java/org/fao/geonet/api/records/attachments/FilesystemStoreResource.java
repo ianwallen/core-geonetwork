@@ -26,8 +26,17 @@
 package org.fao.geonet.api.records.attachments;
 
 
+import org.apache.commons.io.FilenameUtils;
+import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.domain.MetadataResource;
 import org.fao.geonet.domain.MetadataResourceVisibility;
+import org.fao.geonet.kernel.GeonetworkDataDirectory;
+import org.fao.geonet.resources.Resources;
+import org.springframework.context.ApplicationContext;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Metadata resource stored in the file system.
@@ -35,24 +44,38 @@ import org.fao.geonet.domain.MetadataResourceVisibility;
  * Created by francois on 31/12/15.
  */
 public class FilesystemStoreResource implements MetadataResource {
-    private final String filename;
+    private final String id;
     private final String url;
     private final MetadataResourceVisibility metadataResourceVisibility;
     private double size = -1;
+    private String contentType;
+    private String dataDirectoryRelativePath;
 
     public FilesystemStoreResource(String id,
                                    String baseUrl,
                                    MetadataResourceVisibility metadataResourceVisibility,
-                                   double size) {
-        this.filename = id;
+                                   double size,
+                                   String dataDirectoryRelativePath) {
+        // content type will be retreived when we needed
+        this(id, baseUrl, metadataResourceVisibility, size, null, dataDirectoryRelativePath);
+    }
+    public FilesystemStoreResource(String id,
+                                   String baseUrl,
+                                   MetadataResourceVisibility metadataResourceVisibility,
+                                   double size,
+                                   String contentType,
+                                   String dataDirectoryRelativePath) {
+        this.id = id;
         this.url = baseUrl + id;
         this.metadataResourceVisibility = metadataResourceVisibility;
         this.size = Double.isNaN(size) ? -1 : size;
+        this.contentType = contentType;
+        this.dataDirectoryRelativePath = dataDirectoryRelativePath;
     }
 
     @Override
     public String getId() {
-        return filename;
+        return id;
     }
 
     @Override
@@ -74,10 +97,44 @@ public class FilesystemStoreResource implements MetadataResource {
     public String toString() {
         StringBuffer sb = new StringBuffer(this.getClass().getSimpleName());
         sb.append("\n");
-        sb.append("Id: ").append(filename).append("\n");
+        sb.append("Id: ").append(id).append("\n");
         sb.append("URL: ").append(url).append("\n");
         sb.append("Type: ").append(metadataResourceVisibility).append("\n");
         sb.append("Size: ").append(size).append("\n");
+        sb.append("ContentType: ").append(contentType).append("\n");
+        sb.append("RelativePath: ").append(dataDirectoryRelativePath).append("\n");
         return sb.toString();
+    }
+
+    @Override
+    public String getFileName() {
+        return FilenameUtils.getName(id);
+    }
+
+    @Override
+    public byte[] getBytes() throws IOException {
+        return Files.readAllBytes(getPath());
+    }
+
+    @Override
+    public String getContentType() throws IOException {
+        if (contentType == null) {
+            this.contentType = Resources.getFileContentType(getPath());
+        }
+        return contentType;
+    }
+
+    @Override
+    public String getDataDirectoryRelativePath() {
+        return dataDirectoryRelativePath;
+    }
+
+    public Path getPath() {
+        ApplicationContext _appContext = ApplicationContextHolder.get();
+
+        GeonetworkDataDirectory dataDirectory = _appContext.getBean(GeonetworkDataDirectory.class);
+        Path dataDir = dataDirectory.getMetadataDataDir();
+
+        return dataDir.resolve(this.dataDirectoryRelativePath);
     }
 }

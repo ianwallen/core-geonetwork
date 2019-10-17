@@ -96,6 +96,36 @@ public class Resources {
     }
 
     /**
+     * Based on the file content or file extension return an appropiate mime type.
+     *
+     * @return The mime type or application/{{file_extension}} if none found.
+     */
+    public static String getFileContentType(Path file) throws IOException {
+        String contentType = java.nio.file.Files.probeContentType(file);
+        if (contentType == null) {
+            String ext = com.google.common.io.Files.getFileExtension(file.getFileName().toString()).toLowerCase();
+            switch (ext) {
+                case "png":
+                case "gif":
+                case "bmp":
+                case "tif":
+                case "tiff":
+                case "jpg":
+                case "jpeg":
+                    contentType = "image/" + ext;
+                    break;
+                case "txt":
+                case "html":
+                    contentType = "text/" + ext;
+                    break;
+                default:
+                    contentType = "application/" + ext;
+            }
+        }
+        return contentType;
+    }
+
+    /**
      * Find the configured directory containing logos. The directory the logos are located in
      * depends on the configuration of dataImagesDir in the config.xml.
      * <p/>

@@ -31,9 +31,10 @@ import org.fao.geonet.api.ApiParams;
 import org.fao.geonet.api.ApiUtils;
 import org.fao.geonet.api.exception.ResourceNotFoundException;
 import org.fao.geonet.api.mapservers.model.AnonymousMapserver;
-import org.fao.geonet.api.records.attachments.FilesystemStore;
+import org.fao.geonet.api.records.attachments.Store;
 import org.fao.geonet.api.tools.i18n.LanguageUtils;
 import org.fao.geonet.domain.MapServer;
+import org.fao.geonet.domain.MetadataResource;
 import org.fao.geonet.kernel.setting.SettingManager;
 import org.fao.geonet.repository.MapServerRepository;
 import org.fao.geonet.utils.GeonetHttpRequestFactory;
@@ -47,6 +48,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +82,7 @@ public class MapServersApi {
     MapServerRepository mapServerRepository;
 
     @Autowired
-    FilesystemStore store;
+    Store store;
 
     @Autowired
     SettingManager settingManager;
@@ -567,9 +570,13 @@ public class MapServersApi {
                     metadataUuid, metadataTitle, metadataAbstract);
             } else {
                 // Get ZIP file from data directory
-                Path f = store.getResource(context, metadataUuid, resource);
+                MetadataResource f = store.getResource(context, metadataUuid, resource);
+                File tempFile = File.createTempFile("tempzip_", f.getFileName());
+                FileOutputStream fos = new FileOutputStream(tempFile);
+                fos.write(f.getBytes());
+                fos.close();
                 return addZipFile(action, gs,
-                    f, resource,
+                        tempFile.toPath(), resource,
                     metadataUuid, metadataTitle, metadataAbstract);
             }
         }

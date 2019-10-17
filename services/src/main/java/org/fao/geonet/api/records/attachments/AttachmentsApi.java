@@ -28,6 +28,7 @@ package org.fao.geonet.api.records.attachments;
 import io.swagger.annotations.*;
 import jeeves.server.UserSession;
 import jeeves.server.context.ServiceContext;
+import org.apache.commons.io.IOUtils;
 import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.api.API;
 import org.fao.geonet.api.ApiParams;
@@ -57,10 +58,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import springfox.documentation.annotations.ApiIgnore;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -85,36 +84,6 @@ public class AttachmentsApi {
 
     public AttachmentsApi(Store store) {
         this.store = store;
-    }
-
-    /**
-     * Based on the file content or file extension return an appropiate mime type.
-     *
-     * @return The mime type or application/{{file_extension}} if none found.
-     */
-    public static String getFileContentType(Path file) throws IOException {
-        String contentType = Files.probeContentType(file);
-        if (contentType == null) {
-            String ext = com.google.common.io.Files.getFileExtension(file.getFileName().toString()).toLowerCase();
-            switch (ext) {
-            case "png":
-            case "gif":
-            case "bmp":
-            case "tif":
-            case "tiff":
-            case "jpg":
-            case "jpeg":
-                contentType = "image/" + ext;
-                break;
-            case "txt":
-            case "html":
-                contentType = "text/" + ext;
-                break;
-            default:
-                contentType = "application/" + ext;
-            }
-        }
-        return contentType;
     }
 
     public Store getStore() {
@@ -151,8 +120,8 @@ public class AttachmentsApi {
     public List<MetadataResource> getAllResources(
             @ApiParam(value = "The metadata UUID", required = true, example = "43d7c186-2187-4bcd-8843-41e575a5ef56") @PathVariable String metadataUuid,
             @ApiParam(value = "Sort by", example = "type") @RequestParam(required = false, defaultValue = "name") Sort sort,
-            @ApiParam(value = "Use approved version or not", example = "true") @RequestParam(required = false, defaultValue = "true") Boolean approved,
-            @RequestParam(required = false, defaultValue = FilesystemStore.DEFAULT_FILTER) String filter,
+            @ApiParam(value = "Use approved version or not", example = "true") @RequestParam(required = false, defaultValue = "true") Boolean approved,            
+            @RequestParam(required = false) String filter,
             @ApiIgnore HttpServletRequest request) throws Exception {
         ServiceContext context = ApiUtils.createServiceContext(request);
         List<MetadataResource> list = store.getResources(context, metadataUuid, sort, filter, approved);
@@ -220,7 +189,7 @@ public class AttachmentsApi {
             @ApiParam(value = "The sharing policy", example = "public") @RequestParam(required = false, defaultValue = "public") MetadataResourceVisibility visibility,
             @ApiParam(value = "The URL to load in the store") @RequestParam("url") URL url,
             @ApiParam(value = "Use approved version or not", example = "true") @RequestParam(required = false, defaultValue = "false") Boolean approved,
-           @ApiIgnore HttpServletRequest request) throws Exception {
+            @ApiIgnore HttpServletRequest request) throws Exception {
         ServiceContext context = ApiUtils.createServiceContext(request);
         MetadataResource resource = store.putResource(context, metadataUuid, url, visibility, approved);
 
@@ -249,16 +218,16 @@ public class AttachmentsApi {
             @ApiParam(value = "Use approved version or not", example = "true") @RequestParam(required = false, defaultValue = "true") Boolean approved,
             @ApiIgnore HttpServletRequest request) throws Exception {
         ServiceContext context = ApiUtils.createServiceContext(request);
-        Path file = store.getResource(context, metadataUuid, resourceId, approved);
-        
+        MetadataResource metadataResource = store.getResource(context, metadataUuid, resourceId, approved);
+
         ApiUtils.canViewRecord(metadataUuid, request);
 
         MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add("Content-Disposition", "inline; filename=\"" + file.getFileName() + "\"");
+        headers.add("Content-Disposition", "inline; filename=\"" + metadataResource.getFileName() + "\"");
         headers.add("Cache-Control", "no-cache");
-        headers.add("Content-Type", getFileContentType(file));
+        headers.add("Content-Type", metadataResource.getContentType());
 
-        return new HttpEntity<>(Files.readAllBytes(file), headers);
+        return new HttpEntity<>(metadataResource.getBytes(), headers);
     }
 
     @ApiOperation(value = "Update the metadata resource visibility", nickname = "patchMetadataResourceVisibility")
@@ -288,7 +257,7 @@ public class AttachmentsApi {
             @ApiParam(value = "The metadata UUID", required = true, example = "43d7c186-2187-4bcd-8843-41e575a5ef56") @PathVariable String metadataUuid,
             @ApiParam(value = "The resource identifier (ie. filename)", required = true) @PathVariable String resourceId,
             @ApiParam(value = "Use approved version or not", example = "true") @RequestParam(required = false, defaultValue = "false") Boolean approved,
-           @ApiIgnore HttpServletRequest request) throws Exception {
+            @ApiIgnore HttpServletRequest request) throws Exception {
         ServiceContext context = ApiUtils.createServiceContext(request);
         store.delResource(context, metadataUuid, resourceId, approved);
 

@@ -195,7 +195,7 @@ public class GroupsApi {
 
                         return;
                     }
-                    response.setContentType(AttachmentsApi.getFileContentType(imagePath));
+                    response.setContentType(Resources.getFileContentType(imagePath));
                     response.setContentLength((int) Files.size(imagePath));
                     response.addHeader("Cache-Control", "max-age=" + SIX_HOURS + ", public");
                     response.setDateHeader("Expires", System.currentTimeMillis() + SIX_HOURS * 1000L);

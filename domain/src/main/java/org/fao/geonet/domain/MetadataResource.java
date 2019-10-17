@@ -29,6 +29,7 @@ package org.fao.geonet.domain;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.IOException;
 
 /**
  * Created by francois on 31/12/15.
@@ -43,4 +44,12 @@ public interface MetadataResource {
     String getType();
 
     double getSize();
+
+    String getFileName();
+
+    byte[] getBytes() throws IOException;
+
+    String getContentType() throws IOException;
+
+    String getDataDirectoryRelativePath();
 }
