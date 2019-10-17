@@ -117,8 +117,10 @@
       </map>
     </property>
   </bean>
+  <!--bean id="filesystemStore"
+        class="org.fao.geonet.api.records.attachments.FilesystemStore"/-->
   <bean id="filesystemStore"
-        class="org.fao.geonet.api.records.attachments.FilesystemStore"/>
+        class="org.fao.geonet.api.records.attachments.JcloudFilesystemStore"/>
   <bean id="resourceStore"
         class="org.fao.geonet.api.records.attachments.ResourceLoggerStore">
     <constructor-arg index="0" ref="filesystemStore"/>
