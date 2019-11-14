@@ -504,7 +504,7 @@
       <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
       <xsl:for-each
-        select="gmd:language/gco:CharacterString|gmd:language/gmd:LanguageCode/@codeListValue">
+        select="gmd:language/gmd:LanguageCode/@codeListValue|gmd:language/gco:CharacterString">
         <Field name="datasetLang" string="{string(.)}" store="true" index="true"/>
       </xsl:for-each>
 

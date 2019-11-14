@@ -77,9 +77,11 @@
 
   <!-- The default language is also added as gmd:locale
   for multilingual metadata records. -->
-  <xsl:variable name="mainLanguage"
-                select="/root/*/gmd:language/gco:CharacterString/text()|
-                        /root/*/gmd:language/gmd:LanguageCode/@codeListValue"/>
+ <xsl:variable name="mainLanguage">
+      <xsl:call-template name="langId_from_gmdlanguage19139">
+          <xsl:with-param name="gmdlanguage" select="/root/*/gmd:language"/>
+      </xsl:call-template>
+  </xsl:variable>
 
   <xsl:variable name="isMultilingual"
                 select="count(/root/*/gmd:locale[*/gmd:languageCode/*/@codeListValue != $mainLanguage]) > 0"/>
@@ -461,6 +463,7 @@
   <!-- codelists: set @codeList path -->
   <!-- ================================================================= -->
   <xsl:template match="gmd:LanguageCode[@codeListValue]" priority="10">
+   <xsl:message>gmd:LanguageCode=<xsl:value-of select="normalize-space(@codeListValue)"/></xsl:message>
     <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/">
       <xsl:apply-templates select="@*[name(.)!='codeList']"/>
     </gmd:LanguageCode>

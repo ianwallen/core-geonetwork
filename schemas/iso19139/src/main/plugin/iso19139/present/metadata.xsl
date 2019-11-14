@@ -4569,8 +4569,11 @@
 
         <xsl:variable name="ptFreeTextTree" select="exslt:node-set($tmpFreeText)"/>
 
-        <xsl:variable name="mainLang"
-                      select="string(/root/*/gmd:language/gco:CharacterString|/root/*/gmd:language/gmd:LanguageCode/@codeListValue)"/>
+        <xsl:variable name="mainLang">
+           <xsl:call-template name="getMainLangFromMetadata">
+              <xsl:with-param name="md" select="/root/*"/>
+           </xsl:call-template>
+        </xsl:variable>
         <xsl:variable name="mainLangId">
           <xsl:call-template name="getLangIdFromMetadata">
             <xsl:with-param name="lang" select="$mainLang"/>
@@ -4764,8 +4767,12 @@
     to clean multilingual content and add required attribute (xsi:type).
   -->
   <xsl:template name="PT_FreeText_Tree">
-    <xsl:variable name="mainLang"
-                  select="string(/root/*/gmd:language/gco:CharacterString|/root/*/gmd:language/gmd:LanguageCode/@codeListValue)"/>
+    <xsl:variable name="mainLang">
+       <xsl:call-template name="getMainLangFromMetadata">
+          <xsl:with-param name="md" select="/root/*"/>
+       </xsl:call-template>
+    </xsl:variable>
+
     <xsl:variable name="languages"
                   select="/root/*/gmd:locale/gmd:PT_Locale/gmd:languageCode/gmd:LanguageCode/@codeListValue"/>
 
