@@ -530,17 +530,17 @@
 
     <xsl:call-template name="render-element">
       <xsl:with-param name="label" select="$labelConfig/*"/>
-      <xsl:with-param name="value" select="*/@codeListValue"/>
+      <xsl:with-param name="value" select="./@codeListValue"/>
       <xsl:with-param name="cls" select="local-name()"/>
       <xsl:with-param name="xpath" select="$xpath"/>
       <xsl:with-param name="type" select="gn-fn-iso19139:getCodeListType(name())"/>
       <xsl:with-param name="name"
-                      select="if ($isEditing) then concat(*/gn:element/@ref, '_codeListValue') else ''"/>
-      <xsl:with-param name="editInfo" select="*/gn:element"/>
+                      select="if ($isEditing) then concat(./gn:element/@ref, '_codeListValue') else ''"/>
+      <xsl:with-param name="editInfo" select="./gn:element"/>
       <xsl:with-param name="parentEditInfo"
                       select="if ($refToDelete) then $refToDelete else gn:element"/>
       <xsl:with-param name="listOfValues"
-                      select="gn-fn-metadata:getCodeListValues($schema, name(*[@codeListValue]), $codelists, .)"/>
+                      select="gn-fn-metadata:getCodeListValues($schema, name(.[@codeListValue]), $codelists, .)"/>
       <xsl:with-param name="isFirst"
                       select="count(preceding-sibling::*[name() = $elementName]) = 0"/>
       <!-- Children of an element having an XLink using the directory
