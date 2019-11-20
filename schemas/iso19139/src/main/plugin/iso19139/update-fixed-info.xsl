@@ -435,6 +435,10 @@
           </xsl:choose>
         </xsl:otherwise>
       </xsl:choose>
+
+      <!-- Apply other elements that we are not handling in this template -->
+      <xsl:apply-templates select="node()[not(self::gco:CharacterString|self::gmx:Anchor|self::gmd:PT_FreeText)]"/>
+
     </xsl:copy>
   </xsl:template>
 
@@ -463,7 +467,6 @@
   <!-- codelists: set @codeList path -->
   <!-- ================================================================= -->
   <xsl:template match="gmd:LanguageCode[@codeListValue]" priority="10">
-   <xsl:message>gmd:LanguageCode=<xsl:value-of select="normalize-space(@codeListValue)"/></xsl:message>
     <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/">
       <xsl:apply-templates select="@*[name(.)!='codeList']"/>
     </gmd:LanguageCode>
