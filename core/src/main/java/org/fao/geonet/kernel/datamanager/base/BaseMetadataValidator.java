@@ -341,7 +341,7 @@ public class BaseMetadataValidator implements org.fao.geonet.kernel.datamanager.
                     Element xmlReport = Xml.transform(md, schemaTronXmlXslt, params);
                     if (xmlReport != null) {
                         report.addContent(xmlReport);
-                        // add results to persitent validation information
+                        // add results to persistent validation information
                         int firedRules = 0;
                         Iterator<?> firedRulesElems = xmlReport.getDescendants(new ElementFilter("fired-rule", Namespaces.SVRL));
                         while (firedRulesElems.hasNext()) {
@@ -349,9 +349,9 @@ public class BaseMetadataValidator implements org.fao.geonet.kernel.datamanager.
                             firedRules++;
                         }
                         int invalidRules = 0;
-                        Iterator<?> faileAssertElements = xmlReport.getDescendants(new ElementFilter("failed-assert", Namespaces.SVRL));
-                        while (faileAssertElements.hasNext()) {
-                            faileAssertElements.next();
+                        Iterator<?> failedAssertElements = xmlReport.getDescendants(new ElementFilter("failed-assert", Namespaces.SVRL));
+                        while (failedAssertElements.hasNext()) {
+                            failedAssertElements.next();
                             invalidRules++;
                         }
                         Integer[] results = {invalidRules != 0 ? 0 : 1, firedRules, invalidRules};
