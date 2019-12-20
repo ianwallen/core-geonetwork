@@ -174,7 +174,7 @@ goog.require('gn_alert');
           'linkTypes': {
             'links': ['LINK', 'kml'],
             'downloads': ['DOWNLOAD'],
-            'layers': ['OGC'],
+            'layers': ['OGC', 'ESRI:REST'],
             'maps': ['ows']
           },
           'isFilterTagsDisplayedInSearch': false,
@@ -291,7 +291,7 @@ goog.require('gn_alert');
       requireProxy: [],
       gnCfg: angular.copy(defaultConfig),
       gnUrl: '',
-      docUrl: 'http://geonetwork-opensource.org/manuals/3.6.x/',
+      docUrl: 'https://geonetwork-opensource.org/manuals/3.8.x/',
       //docUrl: '../../doc/',
       modelOptions: {
         updateOn: 'default blur',
@@ -585,6 +585,7 @@ goog.require('gn_alert');
           angular.forEach(gnConfig['map.proj4js'], function(item) {
             proj4.defs(item.code, item.value);
           });
+          ol.proj.proj4.register(proj4);
         }
       });
 
