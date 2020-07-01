@@ -116,7 +116,7 @@ public class BaseMetadataStatus implements IMetadataStatus {
             return StatusValue.Status.DRAFT;
         }
 
-        return String.valueOf(status.getStatusId());
+        return String.valueOf(status.getStatusValue().getId());
     }
 
     // --------------------------------------------------------------------------
@@ -160,8 +160,6 @@ public class BaseMetadataStatus implements IMetadataStatus {
         metatatStatus.setStatusValue(statusValueRepository.findOne(status));
         int userId = context.getUserSession().getUserIdAsInt();
 
-        metatatStatus.setStatusId(status);
-        metatatStatus.setMetadataId(id);
         metatatStatus.setChangeDate(changeDate);
         metatatStatus.setUserId(userId);
         metatatStatus.setUuid(metadataUtils.getMetadataUuid(Integer.toString(id)));
@@ -211,8 +209,6 @@ public class BaseMetadataStatus implements IMetadataStatus {
         MetadataStatus metatatStatus = new MetadataStatus();
         metatatStatus.setChangeMessage("");
         metatatStatus.setStatusValue(statusValueRepository.findOne(newStatus));
-
-        metatatStatus.setStatusId(newStatus);
         metatatStatus.setMetadataId(metadataId);
         metatatStatus.setChangeDate(new ISODate(System.currentTimeMillis()));
         metatatStatus.setUserId(userId);
