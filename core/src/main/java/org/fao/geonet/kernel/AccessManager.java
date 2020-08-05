@@ -603,7 +603,8 @@ public class AccessManager {
                 return (lAddress & lIntranetMask) == (lIntranetNet & lIntranetMask);
             }
         } catch (Exception nfe) {
-            Log.error(Geonet.ACCESS_MANAGER,"isIntranet error: " + nfe.getMessage(), nfe);
+            Log.error(Geonet.ACCESS_MANAGER,"isIntranet error while checking ip '" + ip + "' for network '" + network.getValue() +
+                    "' and netmask '" + netmask.getValue() + "': "  + nfe.getMessage(), nfe);
         }
         return false;
     }
