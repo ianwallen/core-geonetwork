@@ -20,42 +20,31 @@
  * Contact: Jeroen Ticheler - FAO - Viale delle Terme di Caracalla 2,
  * Rome - Italy. email: geonetwork@osgeo.org
  */
+package org.fao.geonet.listener.history;
 
-package org.fao.geonet.repository;
+import org.fao.geonet.domain.StatusValue;
+import org.fao.geonet.events.history.RecordRestoredEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.stereotype.Component;
 
-import org.fao.geonet.domain.Group;
-import org.fao.geonet.domain.ReservedGroup;
+@Component
+public class RecordRestoredListener extends GenericMetadataEventListener implements ApplicationListener<RecordRestoredEvent> {
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+    private String changeMessage = "";
+    private String eventType = StatusValue.Events.RECORDRESTORED;
 
-import java.util.List;
+    @Override
+    public String getChangeMessage() {
+        return changeMessage;
+    }
 
-/**
- * Custom (non-spring-data) query methods for {@link Group} entities
- *
- * @author Jesse
- */
-public interface GroupRepositoryCustom {
-    /**
-     * Find the group with the given groupId (where groupId is a string).  The string will be converted
-     * to an integer for making the query.
-     *
-     * @param groupId the groupid.
-     * @return the group with the given groupid
-     */
-    @Nullable
-    Group findOne(@Nonnull String groupId);
+    @Override
+    public String getEventType() {
+        return eventType;
+    }
 
-    /**
-     * Find a group given one of the Reserved groups enumeration values.
-     *
-     * @param groupEnum one of the Reserved groups enumeration values.
-     * @return the actual group.
-     */
-    @Nonnull
-    public Group findReservedGroup(@Nonnull ReservedGroup groupEnum);
-
-    @Nonnull
-    public List<Integer> findIds();
+    @Override
+    public void onApplicationEvent(RecordRestoredEvent event) {
+        handleEvent(event);
+    }
 }
