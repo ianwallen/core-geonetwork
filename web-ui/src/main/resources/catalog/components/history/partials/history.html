@@ -46,6 +46,18 @@
       </div>
 
       <div class="form-group">
+        <label data-translate="">filterStatusByRecordUUID</label>
+        <input type="text"
+               class="form-control"
+               data-ng-model="filter.uuidFilter"
+               data-typeahead="t.uuid as t.title for t in getSuggestions($viewValue)"
+               data-typeahead-loading="anyLoading"
+               data-typeahead-min-length="1"
+               data-typeahead-focus-first="false"
+               data-typeahead-wait-ms="300">
+      </div>
+
+      <div class="form-group">
         <label data-translate="">filterStatusFromDate</label>
         <input class="form-control"
                type="date"

@@ -53,6 +53,7 @@
             scope.filter = {
               types: {'workflow': true, 'task': true, 'event': true},
               recordFilter: null,
+              uuidFilter: null,
               from: 0,
               size: recordByPage
             };
@@ -83,6 +84,7 @@
 
               if (scope.md ) {
                 scope.filter.recordFilter = scope.md['geonet:info'].id;
+                scope.filter.uuidFilter = scope.md['geonet:info'].uuid;
                 gnRecordHistoryService.search(scope.filter).then(function(r) {
                   scope.history = r.data;
                   scope.hasMoreRecords = r.data.length >= scope.filter.size;
@@ -212,6 +214,7 @@
                 ownerFilter: null,
                 authorFilter: null,
                 recordFilter: null,
+                uuidFilter: null,
                 dateFromFilter: null,
                 dateToFilter: null,
                 from: 0,

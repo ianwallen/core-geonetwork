@@ -964,6 +964,7 @@
     "filterStatusByAuthor":"Status author",
     "filterStatusByOwner":"Status owner",
     "filterStatusByRecordId":"Record identifier",
+    "filterStatusByRecordUUID":"Record UUID",
     "filterStatusFromDate":"Status after date",
     "filterStatusToDate":"Status before date",
     "systemInformation": "System information",
