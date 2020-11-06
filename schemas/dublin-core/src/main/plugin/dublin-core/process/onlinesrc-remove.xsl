@@ -41,6 +41,9 @@ Stylesheet used to remove a reference to a parent record.
   </xsl:template>
 
   <!-- Remove geonet:* elements. -->
-  <xsl:template match="geonet:*|dct:references[text() = $url]|dc:relation[text() = $url]"
+  <xsl:template match="geonet:*" priority="2"/>
+
+  <!-- Note it will only remove the last occurrence. If user accidently added the link to a resource twice they would only want to remove one of them --> 
+  <xsl:template match="dct:references[text() = $url][last()]|dc:relation[text() = $url][last()]"
                 priority="2"/>
 </xsl:stylesheet>

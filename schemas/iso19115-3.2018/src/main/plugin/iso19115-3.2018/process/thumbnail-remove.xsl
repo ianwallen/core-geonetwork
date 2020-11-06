@@ -12,8 +12,10 @@
   <xsl:param name="thumbnail_url"/>
 
   <!-- Remove the thumbnail define in thumbnail_url parameter -->
+  <!-- Note it will only remove the last occurrence. If user accidently added the wrong image they would only want to remove one of them --> 
+
   <xsl:template
-    match="mri:graphicOverview[mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString= $thumbnail_url]"/>
+    match="mri:graphicOverview[mcc:MD_BrowseGraphic/mcc:fileName/gco:CharacterString= $thumbnail_url][last()]"/>
 
   <!-- Do a copy of every nodes and attributes -->
   <xsl:template match="@*|node()">

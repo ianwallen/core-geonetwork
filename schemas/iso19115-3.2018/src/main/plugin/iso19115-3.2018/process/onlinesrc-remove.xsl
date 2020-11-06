@@ -26,25 +26,27 @@
   <xsl:template match="mdb:portrayalCatalogueInfo[count(*/node()) = 1 and
                 */mpc:portrayalCatalogueCitation/*/cit:onlineResource/*/cit:linkage/*/text() = $url]" priority="20"/>
 
-  <xsl:template match="gn:*|
+  <xsl:template match="gn:*" priority="2"/>
+
+  <!-- Note it will only remove the last occurrence. If user accidently added the link to a resource twice they would only want to remove one of them --> 
+  <xsl:template match="
     mrd:onLine[
-    normalize-space(cit:CI_OnlineResource/cit:linkage/gco:CharacterString) = $url and
-    normalize-space(cit:CI_OnlineResource/cit:name/gco:CharacterString) = $name]|
-    mrd:onLine[
-    normalize-space(cit:CI_OnlineResource/cit:linkage/gco:CharacterString) = $url and
-    normalize-space(cit:CI_OnlineResource/cit:protocol/gco:CharacterString) = 'WWW:DOWNLOAD-1.0-http--download']|
+    (normalize-space(cit:CI_OnlineResource/cit:linkage/gco:CharacterString) = $url and
+     normalize-space(cit:CI_OnlineResource/cit:name/gco:CharacterString) = $name) or
+    (normalize-space(cit:CI_OnlineResource/cit:linkage/gco:CharacterString) = $url and
+     normalize-space(cit:CI_OnlineResource/cit:protocol/gco:CharacterString) = 'WWW:DOWNLOAD-1.0-http--download')][last()]|
     mdq:report[*/mdq:result/*/mdq:specification/
-                */cit:onlineResource/*/cit:linkage/*/text() = $url]|
+                */cit:onlineResource/*/cit:linkage/*/text() = $url][last()]|
     mdq:standaloneQualityReport[*/mdq:reportReference/
-                */cit:onlineResource/*/cit:linkage/*/text() = $url]|
+                */cit:onlineResource/*/cit:linkage/*/text() = $url][last()]|
     mrl:additionalDocumentation[
-                */cit:onlineResource/*/cit:linkage/*/text() = $url]|
+                */cit:onlineResource/*/cit:linkage/*/text() = $url][last()]|
     mrc:featureCatalogueCitation[
-                */cit:onlineResource/*/cit:linkage/*/text() = $url]|
+                */cit:onlineResource/*/cit:linkage/*/text() = $url][last()]|
     mdb:portrayalCatalogueInfo[
-                count(*/*) = 1
-                and */mpc:portrayalCatalogueCitation/*/cit:onlineResource/*/cit:linkage/*/text() = $url]|
+                count(*/*) = 1 
+                and */mpc:portrayalCatalogueCitation/*/cit:onlineResource/*/cit:linkage/*/text() = $url][last()]|
     mpc:portrayalCatalogueCitation[
-                */cit:onlineResource/*/cit:linkage/*/text() = $url]"
+                */cit:onlineResource/*/cit:linkage/*/text() = $url][last()]"
     priority="2"/>
 </xsl:stylesheet>
