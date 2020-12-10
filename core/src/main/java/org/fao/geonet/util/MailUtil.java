@@ -418,8 +418,8 @@ public class MailUtil {
             .getValueAsBool(Settings.SYSTEM_FEEDBACK_MAILSERVER_TLS, false);
 
         String hostName = settings.getValue(Settings.SYSTEM_FEEDBACK_MAILSERVER_HOST);
-        Integer smtpPort = Integer.valueOf(settings
-            .getValue(Settings.SYSTEM_FEEDBACK_MAILSERVER_PORT));
+        Integer smtpPort = settings.getValueAsInt(Settings.SYSTEM_FEEDBACK_MAILSERVER_PORT);
+        smtpPort = smtpPort != null ? smtpPort : 25;
 
         String from = settings.getValue(Settings.SYSTEM_FEEDBACK_EMAIL);
         Boolean ignoreSslCertificateErrors =
