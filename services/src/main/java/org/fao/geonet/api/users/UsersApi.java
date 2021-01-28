@@ -721,26 +721,6 @@ public class UsersApi {
             String profile = element.getProfile();
             // The user has a new group and profile
 
-            // Combine all groups editor and reviewer groups
-            if (profile.equals(Profile.Reviewer.name())) {
-                final UserGroup userGroup = new UserGroup().setGroup(group)
-                    .setProfile(Profile.Editor).setUser(user);
-                String key = Profile.Editor.toString() + group.getId();
-                if (!listOfAddedProfiles.contains(key)) {
-                    toAdd.add(userGroup);
-                    listOfAddedProfiles.add(key);
-                }
-
-                // If the user is already part of this group with this profile,
-                // leave it alone:
-                for (UserGroup g : all) {
-                    if (g.getGroup().getId() == groupId
-                        && g.getProfile().equals(Profile.Editor)) {
-                        toRemove.remove(g);
-                    }
-                }
-            }
-
             final UserGroup userGroup = new UserGroup().setGroup(group)
                 .setProfile(Profile.findProfileIgnoreCase(profile))
                 .setUser(user);
@@ -748,7 +728,6 @@ public class UsersApi {
             if (!listOfAddedProfiles.contains(key)) {
                 toAdd.add(userGroup);
                 listOfAddedProfiles.add(key);
-
             }
 
             // If the user is already part of this group with this profile,

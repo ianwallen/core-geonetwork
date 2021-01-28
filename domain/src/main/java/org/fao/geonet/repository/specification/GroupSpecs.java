@@ -83,6 +83,11 @@ public final class GroupSpecs {
 
     public static Specification<UserGroup> isEditorOrMore(
         final Integer userId) {
+        return isProfileOrMore(userId, Profile.Editor);
+    }
+
+    public static Specification<UserGroup> isProfileOrMore(
+        final Integer userId, Profile profile) {
         return new Specification<UserGroup>() {
             @Override
             public Predicate toPredicate(Root<UserGroup> root,
@@ -97,7 +102,7 @@ public final class GroupSpecs {
                         cb.lessThanOrEqualTo(
                             root.get(UserGroup_.id)
                                 .get(UserGroupId_.profile),
-                            Profile.Editor));
+                            profile));
 
                 return pred;
             }

@@ -210,6 +210,7 @@ public class LuceneSearcher extends MetaSearcher implements MetadataRecordSelect
     static void buildPrivilegesMetadataInfo(ServiceContext context, Document doc, Element infoEl) throws Exception {
         final Integer owner = Integer.valueOf(doc.get(Geonet.IndexFieldNames.OWNER));
         final String groupOwnerString = doc.get(Geonet.IndexFieldNames.GROUP_OWNER);
+        final Integer groupOwner = groupOwnerString == null?null:Integer.valueOf(groupOwnerString);
 
         MetadataSourceInfo sourceInfo = new MetadataSourceInfo();
         sourceInfo.setOwner(owner);
@@ -246,6 +247,10 @@ public class LuceneSearcher extends MetaSearcher implements MetadataRecordSelect
                         break;
                     }
                 }
+            }
+
+            if (!canEdit && groupOwner!=null && !ReservedGroup.isReserved(groupOwner) && editingGroups.contains(Integer.valueOf(groupOwner))) {
+                canEdit=true;
             }
         }
         if (isOwner || canEdit) {

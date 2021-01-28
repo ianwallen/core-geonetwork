@@ -293,7 +293,7 @@
           link: function(scope, element, attrs) {
             var url = '../api/groups?withReservedGroup=true';
             if (attrs.profile) {
-              url = '../api/groups?profile=' + attrs.profile;
+              url = '../api/groups?withInheritedProfile=true&profile=' + attrs.profile;
             }
             var optional = scope.optional != 'false' ? true : false;
             var setDefaultValue = attrs['setDefaultValue'] == 'false' ? false : true;

@@ -252,14 +252,6 @@ public class ShibbolethUserUtils {
                     profile = Profile.UserAdmin;
                 }
                 usergroup.setProfile(profile);
-
-                if (profile.equals(Profile.Reviewer)) {
-                    UserGroup ug = new UserGroup();
-                    ug.setGroup(g);
-                    ug.setUser(user);
-                    ug.setProfile(Profile.Editor);
-                    userGroupRepository.save(ug);
-                }
             } else {
                 // Failback if no profile
                 usergroup.setProfile(Profile.Guest);

@@ -282,6 +282,14 @@ public class GroupsApi {
         )
             boolean withReservedGroup,
         @ApiParam(
+            value = "Including inherited profiles when getting the groups"
+        )
+        @RequestParam(
+            required = false,
+            defaultValue = "false"
+        )
+            boolean withInheritedProfile,
+        @ApiParam(
             value = "For a specific profile"
         )
         @RequestParam(
@@ -298,12 +306,15 @@ public class GroupsApi {
                 session,
                 null,
                 withReservedGroup,
+                withInheritedProfile,
                 !withReservedGroup);
         } else {
             return getGroups(
                 session,
                 Profile.findProfileIgnoreCase(profile),
-                false, false);
+                false,
+                withInheritedProfile,
+                false);
         }
     }
 
@@ -572,6 +583,9 @@ public class GroupsApi {
      *
      * @param includingSystemGroups if true, also returns the system groups ('GUEST', 'intranet',
      *                              'all')
+     * @param includingInheritedProfile if true, also returns the system groups for the profiles that are inherited.
+     *                                  i.e. if checking for editor profile and users is useradmin for sample group then
+     *                                 the sample group would be returned.
      * @param all                   if true returns all the groups, even those the user doesn't
      *                              belongs to
      */
@@ -579,6 +593,7 @@ public class GroupsApi {
         UserSession session,
         Profile profile,
         boolean includingSystemGroups,
+        boolean includingInheritedProfile,
         boolean all)
         throws SQLException {
         final Sort sort = SortUtils.createSort(Group_.id);
@@ -594,7 +609,11 @@ public class GroupsApi {
             // you're no Administrator
             // retrieve your groups
             if (profile != null) {
-                spec = spec.and(UserGroupSpecs.hasProfile(profile));
+                if (includingInheritedProfile) {
+                    spec = spec.and(GroupSpecs.isProfileOrMore(session.getUserIdAsInt(), profile));
+                } else {
+                    spec = spec.and(UserGroupSpecs.hasProfile(profile));
+                }
             }
             Set<Integer> ids = new HashSet<Integer>(userGroupRepository.findGroupIds(spec));
 

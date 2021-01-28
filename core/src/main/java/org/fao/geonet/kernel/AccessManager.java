@@ -61,6 +61,7 @@ import org.fao.geonet.repository.SettingRepository;
 import org.fao.geonet.repository.SortUtils;
 import org.fao.geonet.repository.UserGroupRepository;
 import org.fao.geonet.repository.UserRepository;
+import org.fao.geonet.repository.specification.GroupSpecs;
 import org.fao.geonet.repository.specification.UserGroupSpecs;
 import org.fao.geonet.utils.Log;
 import org.jdom.Element;
@@ -186,7 +187,7 @@ public class AccessManager {
             } else {
                 Specification<UserGroup> spec = UserGroupSpecs.hasUserId(usrSess.getUserIdAsInt());
                 if (editingGroupsOnly) {
-                    spec = Specifications.where(spec).and(UserGroupSpecs.hasProfile(Profile.Editor));
+                    spec = Specifications.where(spec).and(GroupSpecs.isEditorOrMore(usrSess.getUserIdAsInt()));
                 }
 
                 hs.addAll(userGroupRepository.findGroupIds(spec));
@@ -203,11 +204,20 @@ public class AccessManager {
      * @throws SQLException
      */
     public static List<Integer> getGroups(UserSession session, Profile profile) throws SQLException {
+        return getGroups(session, profile, false);
+    }
+
+    public static List<Integer> getGroups(UserSession session, Profile profile, boolean includingInheritedProfile) throws SQLException {
         ApplicationContext applicationContext = ApplicationContextHolder.get();
         final UserGroupRepository userGroupRepository = applicationContext.getBean(UserGroupRepository.class);
 
         Specifications<UserGroup> spec = Specifications.where(UserGroupSpecs.hasUserId(session.getUserIdAsInt()));
-        spec = spec.and(UserGroupSpecs.hasProfile(profile));
+
+        if (includingInheritedProfile) {
+            spec = spec.and(GroupSpecs.isProfileOrMore(session.getUserIdAsInt(), profile));
+        } else {
+            spec = spec.and(UserGroupSpecs.hasProfile(profile));
+        }
 
         return userGroupRepository.findGroupIds(spec);
     }
@@ -266,6 +276,10 @@ public class AccessManager {
         return isOwner(context, id) || hasEditPermission(context, id);
     }
 
+    public boolean canEdit(final ServiceContext context, final AbstractMetadata metadata) throws Exception {
+        return isOwner(context, metadata) || hasEditPermission(context, metadata);
+    }
+
     /**
      * Returns true if, and only if, at least one of these conditions is satisfied: <ul> <li>the
      * user is owner (@see #isOwner)</li> <li>the user has reviewing rights over the metadata</li> </ul>
@@ -280,11 +294,11 @@ public class AccessManager {
         //--- retrieve metadata info
         AbstractMetadata info = context.getBean(IMetadataUtils.class).findOne(id);
 
-        if (info == null)
-            return false;
-        final MetadataSourceInfo sourceInfo = info.getSourceInfo();
+        return isOwner(context, info) || hasReviewPermission(context, info);
+    }
 
-        return isOwner(context, sourceInfo) || hasReviewPermission(context, info);
+    public boolean canReview(final ServiceContext context, final AbstractMetadata metadata) throws Exception {
+        return isOwner(context, metadata) || hasReviewPermission(context, metadata);
     }
 
     /**
@@ -310,6 +324,10 @@ public class AccessManager {
      */
     public boolean isOwner(final ServiceContext context, final String id) throws Exception {
         AbstractMetadata info = metadataUtils.findOne(id);
+        return isOwner(context, info);
+    }
+
+    public boolean isOwner(final ServiceContext context, final AbstractMetadata info) throws Exception {
         if (info == null)
             return false;
         final MetadataSourceInfo sourceInfo = info.getSourceInfo();
@@ -459,8 +477,18 @@ public class AccessManager {
      * @param id The metadata internal identifier
      */
     public boolean hasEditPermission(final ServiceContext context, final String id) throws Exception {
-        return hasEditingPermissionWithProfile(context, id, Profile.Editor);
+        if (!isUserAuthenticated(context.getUserSession())) {
+            return false;
+        }
 
+        //--- retrieve metadata info
+        AbstractMetadata info = context.getBean(IMetadataUtils.class).findOne(id);
+
+        return hasEditingPermissionWithProfile(context, info, Profile.Editor);
+    }
+
+    public boolean hasEditPermission(final ServiceContext context, final AbstractMetadata metadata) throws Exception {
+        return hasEditingPermissionWithProfile(context, metadata, Profile.Editor);
     }
 
     /**
@@ -477,9 +505,6 @@ public class AccessManager {
         //--- retrieve metadata info
         AbstractMetadata info = context.getBean(IMetadataUtils.class).findOne(id);
 
-        if (info == null)
-            return false;
-
         return hasReviewPermission(context, info);
     }
 
@@ -491,13 +516,16 @@ public class AccessManager {
      * @param metadata The metadata info.
      */
     public boolean hasReviewPermission(final ServiceContext context, final AbstractMetadata metadata) throws Exception {
+        if (metadata == null)
+            return false;
+
         UserSession us = context.getUserSession();
         if (!isUserAuthenticated(us)) {
             return false;
         }
 
         // Check if the user is a reviewer in the metadata owners group.
-        Specification<UserGroup> hasUserIdAndGroupAndProfile = where(UserGroupSpecs.hasProfile(Profile.Reviewer))
+        Specification<UserGroup> hasUserIdAndGroupAndProfile = where(GroupSpecs.isProfileOrMore(us.getUserIdAsInt(), Profile.Reviewer))
             .and(UserGroupSpecs.hasGroupId(metadata.getSourceInfo().getGroupOwner()))
             .and(UserGroupSpecs.hasUserId(us.getUserIdAsInt()));
 
@@ -511,16 +539,33 @@ public class AccessManager {
      * Check if current user has permission for the metadata according to the groups where the metadata is
      * editable and specific user profile.
      *
-     * @param id The metadata internal identifier
+     * @param metadata The metadata content
      */
-    private boolean hasEditingPermissionWithProfile(final ServiceContext context, final String id, Profile profile) throws Exception {
+
+    private boolean hasEditingPermissionWithProfile(final ServiceContext context, final AbstractMetadata metadata, Profile profile) throws Exception {
+        if (metadata == null) {
+            return false;
+        }
+
         UserSession us = context.getUserSession();
         if (!isUserAuthenticated(us)) {
             return false;
         }
 
+        // Check if the user is a editor in the metadata owners group.
+        Specification<UserGroup> hasUserIdAndGroupAndProfile  = Specifications.where(UserGroupSpecs.hasUserId(us.getUserIdAsInt()))
+            .and(UserGroupSpecs.hasGroupId(metadata.getSourceInfo().getGroupOwner()))
+            .and(GroupSpecs.isProfileOrMore(us.getUserIdAsInt(), profile));
+
+        UserGroupRepository userGroupRepo = context.getBean(UserGroupRepository.class);
+        long count = userGroupRepo.count(hasUserIdAndGroupAndProfile);
+
+        if(count > 0) {
+            return true;
+        }
+
         List<OperationAllowed> allOpAlloweds = operationAllowedRepository.findAll(
-          where(hasMetadataId(id)).and(hasOperation(ReservedOperation.editing)));
+          where(hasMetadataId(metadata.getId())).and(hasOperation(ReservedOperation.editing)));
 
         if (allOpAlloweds.isEmpty()) {
             return false;

@@ -202,18 +202,6 @@ public class KeycloakUserUtils {
                     profile = Profile.UserAdmin;
                 }
                 usergroup.setProfile(profile);
-
-                //Todo - It does not seem necessary to add the user to the editor profile
-                // since the reviewer is the parent of the editor
-                // Seems like the permission checks should be smart enough to know that if a user
-                // is a reviewer then they are also an editor.  Need to test and fix if necessary
-                if (profile.equals(Profile.Reviewer)) {
-                    UserGroup ug = new UserGroup();
-                    ug.setGroup(group);
-                    ug.setUser(user);
-                    ug.setProfile(Profile.Editor);
-                    userGroupRepository.save(ug);
-                }
             } else {
                 // Failback if no profile
                 usergroup.setProfile(Profile.Guest);

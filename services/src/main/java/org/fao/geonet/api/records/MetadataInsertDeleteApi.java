@@ -70,6 +70,7 @@ import org.fao.geonet.repository.MetadataDraftRepository;
 import org.fao.geonet.repository.MetadataRepository;
 import org.fao.geonet.repository.Updater;
 import org.fao.geonet.repository.UserGroupRepository;
+import org.fao.geonet.repository.specification.GroupSpecs;
 import org.fao.geonet.repository.specification.UserGroupSpecs;
 import org.fao.geonet.utils.FilePathChecker;
 import org.fao.geonet.utils.IO;
@@ -450,10 +451,9 @@ public class MetadataInsertDeleteApi {
             metadataUuid = UUID.randomUUID().toString();
         }
 
-        // TODO : Check user can create a metadata in that group
         UserSession user = ApiUtils.getUserSession(httpSession);
         if (user.getProfile() != Profile.Administrator) {
-            final Specifications<UserGroup> spec = where(UserGroupSpecs.hasProfile(Profile.Editor))
+            final Specifications<UserGroup> spec = where(GroupSpecs.isEditorOrMore(user.getUserIdAsInt()))
                     .and(UserGroupSpecs.hasUserId(user.getUserIdAsInt()))
                     .and(UserGroupSpecs.hasGroupId(Integer.valueOf(group)));
 
@@ -461,7 +461,7 @@ public class MetadataInsertDeleteApi {
 
             if (userGroups.size() == 0) {
                 throw new SecurityException(
-                        String.format("You can't create a record in this group. User MUST be an Editor in that group"));
+                        String.format("You can't create a record in this group(" + group + "). User MUST be an Editor in that group"));
             }
         }
 

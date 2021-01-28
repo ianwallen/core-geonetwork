@@ -387,8 +387,6 @@
        *
        * Searching through the list, compute the highest profile
        * for the user and set it.
-       * When a user is a reviewer of a group, the corresponding
-       * group is also selected in the editor profile list.
        */
       $scope.setUserProfile = function(checked) {
         if (!$scope.userSelected) {
@@ -433,25 +431,8 @@
           updateProfileRules);
       $scope.$watchCollection('groupsByProfile.Editor', updateProfileRules);
       $scope.$watchCollection('groupsByProfile.UserAdmin', updateProfileRules);
-      $scope.$watchCollection('groupsByProfile.Reviewer', function(n, o) {
-        if (n !== o) {
-          for (var j = 0; j < n.length; j++) {
-            var g = n[j];
-            var gIsAlsoForEditorProfile = false;
-            for (var i = 0; i < $scope.groupsByProfile['Editor'].length; i++) {
-              var eg = $scope.groupsByProfile['Editor'][i];
-              if (eg.id === g.id) {
-                gIsAlsoForEditorProfile = true;
-                break;
-              }
-            }
-            if (!gIsAlsoForEditorProfile) {
-              $scope.groupsByProfile['Editor'].push(g);
-            }
-          }
-          $scope.setUserProfile();
-        }
-      });
+      $scope.$watchCollection('groupsByProfile.Reviewer', updateProfileRules);
+
       /**
        * Save a user.
        */
