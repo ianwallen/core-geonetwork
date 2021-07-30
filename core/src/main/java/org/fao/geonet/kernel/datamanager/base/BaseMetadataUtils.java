@@ -59,6 +59,8 @@ import org.springframework.data.jpa.domain.Specification;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -265,6 +267,12 @@ public class BaseMetadataUtils implements IMetadataUtils {
     @Override
     public LinkedHashMap<String, String> extractTitles(String schema, Element md) throws Exception {
         Path styleSheet = metadataSchemaUtils.getSchemaDir(schema).resolve(Geonet.File.EXTRACT_TITLES);
+        if (!Files.exists(styleSheet)) {
+            if (Log.isDebugEnabled(Geonet.DATA_MANAGER))
+                Log.debug(Geonet.DATA_MANAGER, "Stylesheet " + styleSheet + " does not exists. Skipping the extraction of titles");
+            return null;
+        }
+
         Element root = Xml.transform(md, styleSheet);
 
         LinkedHashMap<String, String> titles = new LinkedHashMap<>();
