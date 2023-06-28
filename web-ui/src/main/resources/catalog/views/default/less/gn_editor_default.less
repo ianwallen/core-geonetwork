@@ -6,10 +6,18 @@
 .gn-results-editor {
   .gn-status {
     font-weight: 500;
+    color: @text-muted;
+    border: 1px solid @btn-default-border;
+    padding: 0 5px;
+    margin-right: 5px;
+    border-radius: 3px;
   }
   tr:hover {
     background-color: @panel-footer-bg;
     transition: background-color ease 0.5s;
+  }
+  .gn-record-details {
+    margin-top: 5px;
   }
 }
 
@@ -73,19 +81,18 @@
     }
   }
   .gn-editor-board {
+    padding-top: @gn-header-height;
     .gn-top-search {
-      padding-top: 0;
-      padding-bottom: 0;
       background-color: #fff;
     }
   }
   .gn-search-facet {
     padding-bottom: 15px;
   }
-  // modal dialog (wider for for multilingual)
-  @media (min-width: @screen-sm-min) {
-    .modal-dialog {
-      width: 760px;
+  .modal-dialog {
+    .modal-body {
+      max-height: 85vh;
+      overflow: auto;
     }
   }
   form.gn-editor {
@@ -174,6 +181,9 @@
         margin-left: -17px;
         font-size: 16px;
         margin-top: 0px;
+      }
+      legend.collapsed[data-gn-slide-toggle]:before {
+        content: "\f105";
       }
       table {
         .col-sm-2, .col-sm-9 {
@@ -429,6 +439,29 @@
   // attribution on the 'make thumbnail' map
   .ol-attribution {
     .gn-attribution();
+  }
+}
+#gn-addonlinesrc-description-row {
+  .form-control {
+    background: #fff !important;
+  }
+  .tt-menu {
+    top: auto !important;
+    width: calc(~"100% - 30px");
+    margin-left: 15px;
+  }
+  .twitter-typeahead .tt-menu {
+    width: 100%;
+    margin-left: 0;
+  }
+  .tt-menu + .twitter-typeahead {
+    display: none !important;
+  }
+  .tt-suggestion {
+    &:hover {
+      cursor: pointer;
+      background-color: @dropdown-link-hover-bg;
+    }
   }
 }
 

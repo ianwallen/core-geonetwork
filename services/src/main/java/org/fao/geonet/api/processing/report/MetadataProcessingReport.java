@@ -51,6 +51,11 @@ public abstract class MetadataProcessingReport extends ProcessingReport {
     @XmlAttribute
     protected int processedRecords = 0;
     /**
+     * The number of records processed when the report was generated
+     */
+    @XmlAttribute
+    protected int unchangedRecords = 0;
+    /**
      * The number of records when a null metadata identifier is processed (may happen when a record
      * is in the selection but was deleted after the selection)
      */
@@ -156,7 +161,7 @@ public abstract class MetadataProcessingReport extends ProcessingReport {
         try {
             metadataDraft = ApplicationContextHolder.get().getBean(IMetadataUtils.class).isMetadataDraft(metadataId);
         } catch (Exception e) {
-            throw new RuntimeException("Error detecting if metadata is draft");
+            throw new RuntimeException("Error detecting if metadata is draft", e);
         }
         return metadataDraft;
     }
@@ -166,7 +171,7 @@ public abstract class MetadataProcessingReport extends ProcessingReport {
         try {
             metadataApproved = ApplicationContextHolder.get().getBean(IMetadataUtils.class).isMetadataApproved(metadataId);
         } catch (Exception e) {
-            throw new RuntimeException("Error detecting if metadata is approved");
+            throw new RuntimeException("Error detecting if metadata is approved", e);
         }
         return metadataApproved;
     }
@@ -199,6 +204,14 @@ public abstract class MetadataProcessingReport extends ProcessingReport {
 
     public synchronized void incrementProcessedRecords() {
         this.processedRecords++;
+    }
+
+    public synchronized int getNumberOfRecordsUnchanged() {
+        return unchangedRecords;
+    }
+
+    public synchronized void incrementUnchangedRecords() {
+        this.unchangedRecords++;
     }
 
     public synchronized void addMetadataId(int metadataId) {

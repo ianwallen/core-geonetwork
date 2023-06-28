@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2001-2016 Food and Agriculture Organization of the
+ * Copyright (C) 2001-2022 Food and Agriculture Organization of the
  * United Nations (FAO-UN), United Nations World Food Programme (WFP)
  * and United Nations Environment Programme (UNEP)
  *
@@ -32,6 +32,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.fao.geonet.api.ApiParams;
 import org.fao.geonet.api.ApiUtils;
 import org.fao.geonet.api.exception.ResourceNotFoundException;
+import org.fao.geonet.api.tools.i18n.TranslationPackBuilder;
 import org.fao.geonet.domain.*;
 import org.fao.geonet.guiapi.search.XsltResponseWriter;
 import org.fao.geonet.repository.LanguageRepository;
@@ -56,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.fao.geonet.api.ApiUtils.setHeaderVaryOnAccept;
+
 
 @RequestMapping(value = {
     "/{portal}/api/sources"
@@ -70,6 +73,9 @@ public class SourcesApi {
 
     @Autowired
     LanguageRepository langRepository;
+
+    @Autowired
+    private TranslationPackBuilder translationPackBuilder;
 
     @io.swagger.v3.oas.annotations.Operation(
         summary = "Get all sources",
@@ -89,8 +95,11 @@ public class SourcesApi {
         @RequestParam(
             value = "group",
             required = false)
-            Integer group
+        Integer group,
+        @Parameter(hidden = true)
+        HttpServletResponse response
     ) throws Exception {
+        setHeaderVaryOnAccept(response);
         if (group != null) {
             return sourceRepository.findByGroupOwner(group);
         } else {
@@ -111,12 +120,13 @@ public class SourcesApi {
     @ResponseBody
     public void getSubPortals(
         @Parameter(hidden = true)
-            HttpServletResponse response
+        HttpServletResponse response
     ) throws Exception {
         final List<Source> sources = sourceRepository.findAll(SortUtils.createSort(Source_.name));
         Element sourcesList = new Element("sources");
         sources.stream().map(GeonetEntity::asXml).forEach(sourcesList::addContent);
         response.setContentType(MediaType.TEXT_HTML_VALUE);
+        setHeaderVaryOnAccept(response);
         response.getWriter().write(
             new XsltResponseWriter(null, "portal")
                 .withJson("catalog/locales/en-core.json")
@@ -160,9 +170,9 @@ public class SourcesApi {
             name = "source"
         )
         @RequestBody
-            Source source,
+        Source source,
         @Parameter(hidden = true)
-            HttpServletRequest request) {
+        HttpServletRequest request) {
         Optional<Source> existing = sourceRepository.findById(source.getUuid());
         if (existing.isPresent()) {
             throw new IllegalArgumentException(String.format(
@@ -188,6 +198,9 @@ public class SourcesApi {
 
         Source sourceCreated = sourceRepository.save(source);
         copySourceLogo(source, request);
+
+        translationPackBuilder.clearCache();
+
         return new ResponseEntity(sourceCreated.getUuid(), HttpStatus.CREATED);
     }
 
@@ -219,18 +232,26 @@ public class SourcesApi {
             required = true
         )
         @PathVariable
-            String sourceIdentifier,
+        String sourceIdentifier,
         @Parameter(
             name = "source"
         )
         @RequestBody
-            Source source,
+        Source source,
         @Parameter(hidden = true)
-            HttpServletRequest request) throws Exception {
+        HttpServletRequest request) throws Exception {
         Optional<Source> existingSource = sourceRepository.findById(sourceIdentifier);
         if (existingSource.isPresent()) {
+            // Rebuild translation pack cache if there are changes in the translations
+            boolean clearTranslationPackCache =
+                !existingSource.get().getLabelTranslations().equals(source.getLabelTranslations());
+
             updateSource(sourceIdentifier, source, sourceRepository);
             copySourceLogo(source, request);
+
+            if (clearTranslationPackCache) {
+                translationPackBuilder.clearCache();
+            }
         } else {
             throw new ResourceNotFoundException(String.format(
                 "Source with uuid '%s' does not exist.",
@@ -261,9 +282,9 @@ public class SourcesApi {
             required = true
         )
         @PathVariable
-            String sourceIdentifier,
+        String sourceIdentifier,
         @Parameter(hidden = true)
-            HttpServletRequest request
+        HttpServletRequest request
     ) throws ResourceNotFoundException {
         Optional<Source> existingSource = sourceRepository.findById(sourceIdentifier);
         if (existingSource.isPresent()) {
@@ -301,11 +322,11 @@ public class SourcesApi {
             entity.setServiceRecord(source.getServiceRecord());
             entity.setUiConfig(source.getUiConfig());
             entity.setLogo(source.getLogo());
+            entity.setListableInHeaderSelector(source.isListableInHeaderSelector());
             Map<String, String> labelTranslations = source.getLabelTranslations();
-            if (labelTranslations != null) {
-                entity.getLabelTranslations().clear();
-                entity.getLabelTranslations().putAll(labelTranslations);
-            }
+            entity.getLabelTranslations().clear();
+            entity.getLabelTranslations().putAll(labelTranslations);
+
         });
     }
 }

@@ -178,15 +178,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"
                 <xsl:with-param name="lang" select="$requestedLanguage"/>
             </xsl:apply-templates>
         </xsl:variable>
-        <xsl:variable name="identifierCode" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/*/gmd:code/gco:CharacterString"/>
-        <xsl:variable name="identifierCodeSpace" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/*/gmd:codeSpace/gco:CharacterString"/>
+        <xsl:variable name="identifierCode" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/*/gmd:code/(gco:CharacterString|gmx:Anchor)"/>
+        <xsl:variable name="identifierCodeSpace" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/*/gmd:codeSpace/(gco:CharacterString|gmx:Anchor)"/>
 
         <!-- REQ 13: code and namespace -->
         <inspire_dls:spatial_dataset_identifier_code><xsl:value-of select="$identifierCode"/></inspire_dls:spatial_dataset_identifier_code>
         <inspire_dls:spatial_dataset_identifier_namespace><xsl:value-of select="$identifierCodeSpace"/></inspire_dls:spatial_dataset_identifier_namespace>
 
         <!-- Take the first one of the referenceSystemInfo and handle it as the default CRS for download resources -->
-        <xsl:variable name="defaultCRS" select="normalize-space(.//gmd:referenceSystemInfo[1]/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/gco:CharacterString)"/>
+        <xsl:variable name="defaultCRS" select="normalize-space(.//gmd:referenceSystemInfo[1]/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/(gco:CharacterString|gmx:Anchor))"/>
         <xsl:call-template name="add-category">
             <xsl:with-param name="crs" select="$defaultCRS"/>
         </xsl:call-template>
@@ -307,10 +307,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"
                 <xsl:with-param name="lang" select="$requestedLanguage"/>
             </xsl:apply-templates>
         </xsl:variable>
-        <xsl:variable name="identifierCode" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:MD_Identifier/gmd:code/gco:CharacterString|
-                                                    ./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:RS_Identifier/gmd:code/gco:CharacterString"/>
-        <xsl:variable name="identifierCodeSpace" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:MD_Identifier/gmd:codeSpace/gco:CharacterString|
-                                                    ./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:RS_Identifier/gmd:codeSpace/gco:CharacterString"/>
+        <xsl:variable name="identifierCode" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:MD_Identifier/gmd:code/(gco:CharacterString|gmx:Anchor)|
+                                                    ./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:RS_Identifier/gmd:code/(gco:CharacterString|gmx:Anchor)"/>
+        <xsl:variable name="identifierCodeSpace" select="./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:MD_Identifier/gmd:codeSpace/(gco:CharacterString|gmx:Anchor)|
+                                                    ./gmd:identificationInfo[1]//gmd:citation/gmd:CI_Citation/gmd:identifier[1]/gmd:RS_Identifier/gmd:codeSpace/(gco:CharacterString|gmx:Anchor)"/>
 
         <!-- REQ 21: title -->
         <title>
@@ -435,7 +435,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"
             <xsl:with-param name="pocs" select="gmd:identificationInfo//gmd:pointOfContact"/>
         </xsl:call-template>
 
-        <xsl:variable name="defaultCRS" select="normalize-space(.//gmd:referenceSystemInfo[1]/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/gco:CharacterString)"/>
+        <xsl:variable name="defaultCRS" select="normalize-space(.//gmd:referenceSystemInfo[1]/gmd:MD_ReferenceSystem/gmd:referenceSystemIdentifier/gmd:RS_Identifier/gmd:code/(gco:CharacterString|gmx:Anchor))"/>
 
         <xsl:call-template name="add-category">
             <xsl:with-param name="crs" select="$defaultCRS"/>
@@ -581,8 +581,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"
 -->
         <xsl:for-each select="gmd:resourceConstraints/gmd:MD_LegalConstraints">
             <xsl:variable name="accessConstraints" select="gmd:accessConstraints/gmd:MD_RestrictionCode/@codeListValue"/>
-            <xsl:variable name="otherConstraints" select="normalize-space(gmd:otherConstraints/gco:CharacterString)"/>
-            <xsl:variable name="translated-otherConstraints" select="normalize-space(gmd:otherConstraints/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale=concat('#',upper-case(java:threeCharLangCode($requestedLanguage)))])"/>
+            <xsl:variable name="otherConstraints" select="normalize-space(gmd:otherConstraints[1]/(gco:CharacterString|gmx:Anchor))"/>
+            <xsl:variable name="translated-otherConstraints" select="normalize-space(gmd:otherConstraints[1]/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale=concat('#',upper-case(java:threeCharLangCode($requestedLanguage)))])"/>
             <xsl:variable name="resultValue">
                 <xsl:choose>
                     <xsl:when test="$accessConstraints='otherRestrictions' and $otherConstraints!=''">

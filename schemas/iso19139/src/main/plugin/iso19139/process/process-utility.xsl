@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (C) 2001-2016 Food and Agriculture Organization of the
+  ~ Copyright (C) 2001-2021 Food and Agriculture Organization of the
   ~ United Nations (FAO-UN), United Nations World Food Programme (WFP)
   ~ and United Nations Environment Programme (UNEP)
   ~
@@ -39,6 +39,7 @@
   <!-- Catalog URL from protocol to lang -->
   <xsl:param name="catalogUrl" select="''"/>
   <xsl:param name="nodeId" select="''"/>
+  <xsl:variable name="schema" select="'iso19139'"/>
 
   <!-- Search for any of the searchStrings provided -->
   <xsl:function name="geonet:parseBoolean" as="xs:boolean">
@@ -75,20 +76,6 @@
     <xsl:param name="version" as="xs:string"/>
     <xsl:variable name="sep" select="if (contains($url, '?')) then '&amp;' else '?'"/>
 
-    <xsl:variable name="proxyhost"><xsl:value-of select="java:getSettingValue('system/proxy/host')"/></xsl:variable>
-    <xsl:variable name="baseHost"><xsl:value-of select="java:getSettingValue('system/server/host')"/></xsl:variable>
-    <xsl:variable name="protocol"><xsl:value-of select="java:getSettingValue('system/server/protocol')"/></xsl:variable>
-    <xsl:variable name="basePort">
-      <xsl:choose>
-        <xsl:when test="$protocol = 'https'">
-          <xsl:value-of select="java:getSettingValue('system/server/securePort')"/>
-        </xsl:when>
-        <xsl:otherwise>
-          <xsl:value-of select="java:getSettingValue('system/server/port')"/>
-        </xsl:otherwise>
-      </xsl:choose>
-    </xsl:variable>
-        
     <xsl:variable name="fullUrl"><xsl:value-of select="concat($url, $sep, 'SERVICE=', $type, '&amp;VERSION=', $version, '&amp;REQUEST=GetCapabilities')"/></xsl:variable>
 
     <xsl:copy-of select="java:getUrlContent($fullUrl)"/>

@@ -42,11 +42,13 @@ import org.fao.geonet.api.exception.NotAllowedException;
 import org.fao.geonet.api.exception.ResourceNotFoundException;
 import org.fao.geonet.api.records.attachments.AttachmentsApi;
 import org.fao.geonet.api.tools.i18n.LanguageUtils;
+import org.fao.geonet.api.tools.i18n.TranslationPackBuilder;
 import org.fao.geonet.constants.Geonet;
 import org.fao.geonet.domain.*;
 import org.fao.geonet.kernel.DataManager;
 import org.fao.geonet.repository.*;
 import org.fao.geonet.repository.specification.GroupSpecs;
+import org.fao.geonet.repository.specification.MetadataSpecs;
 import org.fao.geonet.repository.specification.OperationAllowedSpecs;
 import org.fao.geonet.repository.specification.UserGroupSpecs;
 import org.fao.geonet.resources.Resources;
@@ -140,6 +142,12 @@ public class GroupsApi {
     private UserGroupRepository userGroupRepository;
     @Autowired
     private DataManager dm;
+
+    @Autowired
+    private TranslationPackBuilder translationPackBuilder;
+
+    @Autowired
+    private MetadataRepository metadataRepository;
 
     private static Resources.ResourceHolder getImage(Resources resources, ServiceContext serviceContext, Group group) throws IOException {
         final Path logosDir = resources.locateLogosDir(serviceContext);
@@ -335,6 +343,8 @@ public class GroupsApi {
             throw new RuntimeException(ex.getMessage());
         }
 
+        translationPackBuilder.clearCache();
+
         return new ResponseEntity<>(group.getId(), HttpStatus.CREATED);
     }
 
@@ -442,11 +452,20 @@ public class GroupsApi {
                 MSG_GROUP_WITH_IDENTIFIER_NOT_FOUND, groupIdentifier
             ));
         } else {
+            // Rebuild translation pack cache if there are changes in the translations
+            boolean clearTranslationPackCache =
+                !existing.get().getLabelTranslations().equals(group.getLabelTranslations());
+
             try {
                 groupRepository.saveAndFlush(group);
             } catch (Exception ex) {
                 Log.error(API.LOG_MODULE_NAME, ExceptionUtils.getStackTrace(ex));
                 throw new RuntimeException(ex.getMessage());
+            }
+
+
+            if (clearTranslationPackCache) {
+                translationPackBuilder.clearCache();
             }
         }
     }
@@ -487,6 +506,15 @@ public class GroupsApi {
         Optional<Group> group = groupRepository.findById(groupIdentifier);
 
         if (group.isPresent()) {
+            final long metadataCount = metadataRepository.count(where((Specification<Metadata>)
+                MetadataSpecs.isOwnedByOneOfFollowingGroups(Arrays.asList(group.get().getId()))));
+            if (metadataCount > 0) {
+                throw new NotAllowedException(String.format(
+                    "Group %s owns metadata. To remove the group you should transfer first the metadata to another group.",
+                    group.get().getName()
+                ));
+            }
+
             List<Integer> reindex = operationAllowedRepo.findAllIds(OperationAllowedSpecs.hasGroupId(groupIdentifier),
                 OperationAllowedId_.metadataId);
 
@@ -514,6 +542,7 @@ public class GroupsApi {
 
             groupRepository.deleteById(groupIdentifier);
 
+            translationPackBuilder.clearCache();
         } else {
             throw new ResourceNotFoundException(String.format(
                 MSG_GROUP_WITH_IDENTIFIER_NOT_FOUND, groupIdentifier

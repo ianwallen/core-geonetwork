@@ -25,16 +25,19 @@ package org.fao.geonet.api.reports;
 
 import com.google.common.collect.ImmutableSet;
 import jeeves.server.context.ServiceContext;
-import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
+import org.apache.commons.lang.StringUtils;
+import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.GeonetContext;
 import org.fao.geonet.constants.Geonet;
 import org.fao.geonet.domain.Profile;
 import org.fao.geonet.domain.ReservedGroup;
 import org.fao.geonet.kernel.AccessManager;
+import org.fao.geonet.kernel.search.EsSearchManager;
+import org.fao.geonet.kernel.search.IndexFields;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -44,6 +47,10 @@ import java.util.Set;
  */
 public final class ReportUtils {
 
+    public static final CSVFormat CSV_FORMAT =
+        CSVFormat.DEFAULT
+            .withRecordSeparator("\n")
+            .withQuoteMode(QuoteMode.ALL);
     /**
      * Constructor.
      */
@@ -116,28 +123,15 @@ public final class ReportUtils {
 
 
     /**
-     * Retrieves a metadata title from the Lucene index.
+     * Retrieves a metadata field from the index.
      *
-     * @param context    Service context.
-     * @param metadataId Metadata identifier.
-     * @return Metadata title.
+     * @param metadataUuid Metadata identifier.
+     * @param fieldName  Lucene field name.
+     * @param fieldNameKey  Key of the field name (eg 'default').
+     * @return Metadata field.
      */
-    public static String retrieveMetadataTitle(final ServiceContext context,
-                                               final int metadataId) {
-        return retrieveMetadataIndexField(context, metadataId, "_defaultTitle");
-    }
-
-
-    /**
-     * Retrieves a metadata uuid from the Lucene index.
-     *
-     * @param context    Service context.
-     * @param metadataId Metadata identifier.
-     * @return Metadata uuid.
-     */
-    public static String retrieveMetadataUuid(final ServiceContext context,
-                                              final int metadataId) {
-        return retrieveMetadataIndexField(context, metadataId, "_uuid");
+    public static String retrieveMetadataIndex(final String metadataUuid,final String fieldName, final String fieldNameKey) {
+        return retrieveMetadataIndexField(metadataUuid, fieldName, fieldNameKey);
     }
 
 
@@ -146,34 +140,45 @@ public final class ReportUtils {
      * <p>
      * Duplicated with XslUtil - to refactor.
      * <p>
-     * TODO / TODOES
+     * TODO / TODOES improve the management of the different type of fields
      *
-     * @param context    Service context.
-     * @param metadataId Metadata identifier.
+     * @param metadataUuid Metadata identifier.
      * @param fieldName  Lucene field name.
+     * @param fieldNameKey  Key of the field name (eg 'default').
      * @return Field value.
      */
     private static String retrieveMetadataIndexField(
-        final ServiceContext context,
-        final int metadataId,
-        final String fieldName) {
-        String value = "";
-
-        throw new NotImplementedException("Not implemented in ES");
-//        try {
-//
-//            value = LuceneSearcher.getMetadataFromIndexById(
-//                    context.getLanguage(),
-//                    metadataId + "",
-//                    fieldName);
-//
-//            if (value == null) {
-//                value = "";
-//            }
-//        } catch (Exception ex) {
-//            ex.printStackTrace();
-//        }
-
-//        return value;
+        final String metadataUuid,
+        final String fieldName,
+        final String fieldNameKey) {
+        EsSearchManager searchManager = ApplicationContextHolder.get().getBean(EsSearchManager.class);
+        try {
+            Map<String, Object> mdIndexFields = searchManager.getDocument(metadataUuid);
+            Object field = mdIndexFields.get(fieldName);
+            if (field instanceof HashMap) {
+                if (StringUtils.isNotEmpty(fieldNameKey)) {
+                    return (String) ((HashMap<?, ?>) field).get(fieldNameKey);
+                } else {
+                    return (String) field.toString();
+                }
+            } else if (field instanceof String) {
+                return (String) field;
+            } else if (field instanceof ArrayList) {
+                Object fieldItem = ((ArrayList<?>) field).get(0);
+                if (fieldItem instanceof HashMap) {
+                    if (StringUtils.isNotEmpty(fieldNameKey)) {
+                        return (String) ((HashMap<?, ?>) fieldItem).get(fieldNameKey);
+                    } else {
+                        return (String) fieldItem.toString();
+                    }
+                }
+                else if (fieldItem instanceof String) {
+                    return (String) fieldItem;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }

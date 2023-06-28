@@ -24,7 +24,9 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:gn="http://www.fao.org/geonetwork"
+                xmlns:util="java:org.fao.geonet.util.XslUtil"
                 xmlns:saxon="http://saxon.sf.net/"
+                xmlns:gn-fn-metadata="http://geonetwork-opensource.org/xsl/functions/metadata"
                 version="2.0" extension-element-prefixes="saxon"
 >
   <!-- Global XSL variables about the metadata record. This should be included for
@@ -100,11 +102,14 @@
 
 
   <xsl:variable name="tab"
-                select="if (/root/request/currTab)
+                select="if (/root/request/currTab != '')
                         then /root/request/currTab
-                        else if (/root/gui/currTab)
+                        else if (/root/gui/currTab != '')
                         then /root/gui/currTab
-                        else $editorConfig/editor/views/view/tab[@default]/@id"/>
+                        else $editorConfig/editor/views/view[@default]/tab[
+                          @default and
+                          gn-fn-metadata:check-elementandsession-visibility($schema, $metadata, $serviceInfo, @displayIfRecord, @displayIfServiceInfo)
+                        ]/@id"/>
 
   <xsl:variable name="viewConfig"
                 select="$editorConfig/editor/views/view[tab/@id = $tab]"/>
@@ -116,6 +121,12 @@
   <xsl:variable name="isFlatMode"
                 select="if (/root/request/flat) then /root/request/flat = 'true'
     else $tabConfig/@mode = 'flat'"/>
+
+  <xsl:variable name="resourceContainerDescription"
+                select="util:getResourceContainerDescription($metadataInfo/uuid, ($metadataInfo/draft != 'y'))"/>
+
+  <xsl:variable name="resourceManagementExternalProperties"
+                select="util:getResourceManagementExternalProperties()"/>
 
   <xsl:variable name="isDisplayingAttributes"
                 select="if (/root/request/displayAttributes)

@@ -1,5 +1,5 @@
 //=============================================================================
-//===	Copyright (C) 2001-2007 Food and Agriculture Organization of the
+//===	Copyright (C) 2001-2022 Food and Agriculture Organization of the
 //===	United Nations (FAO-UN), United Nations World Food Programme (WFP)
 //===	and United Nations Environment Programme (UNEP)
 //===
@@ -164,16 +164,19 @@ public class NetLib {
             Properties props = System.getProperties();
             props.put("http.proxyHost", host);
             props.put("http.proxyPort", port);
+            props.put("https.proxyHost", host);
+            props.put("https.proxyPort", port);
             props.put("http.nonProxyHosts", ignoreHostList);
 
             if (username.trim().length() > 0) {
                 Log.error(Geonet.GEONETWORK, "Proxy credentials cannot be used");
             }
         } else {
-            Properties props = System.getProperties();
-            props.put("http.proxyHost", "");
-            props.put("http.proxyPort", "");
-            props.put("http.nonProxyHosts", "");
+            System.clearProperty("http.proxyHost");
+            System.clearProperty("http.proxyPort");
+            System.clearProperty("https.proxyHost");
+            System.clearProperty("https.proxyPort");
+            System.clearProperty("http.nonProxyHosts");
         }
     }
 

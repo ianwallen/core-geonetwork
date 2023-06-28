@@ -33,10 +33,12 @@
   <bean id="database-migration-bean" class="org.fao.geonet.DatabaseMigration">
     <property name="migration" ref="migrationMap"/>
     <property name="initAfter" value="javax.sql.DataSource"/>
+    <property name="dbMigrationOnStartup" value="\${db.migration_onstartup}"/>
   </bean>
   <bean id="database-data-migration-bean" class="org.fao.geonet.DatabaseMigration">
     <property name="migration" ref="dataMigrationMap"/>
     <property name="initAfter" value="org.springframework.orm.jpa.JpaTransactionManager"/>
+    <property name="dbMigrationOnStartup" value="\${db.migration_onstartup}"/>
   </bean>
 
   <util:map id="migrationMap"
@@ -146,6 +148,16 @@
     <entry key="3.0.6">
       <list>
         <value>WEB-INF/classes/setup/sql/migrate/v306/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.0.0">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v400/migrate-db-</value>
+      </list>
+    </entry>
+    <entry key="4.2.4">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v424/migrate-db-</value>
       </list>
     </entry>
   </util:map>
@@ -270,6 +282,18 @@
       <list>
         <value>java:v3110.UpdateMetadataStatus</value>
         <value>WEB-INF/classes/setup/sql/migrate/v3110/migrate-</value>
+        <value>java:v3110.MigrateEncryptor</value>
+        <value>java:v3110.UpdateUISettingsMigration</value>
+      </list>
+    </entry>
+    <entry key="3.12.0">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v3120/migrate-</value>
+      </list>
+    </entry>
+    <entry key="3.12.1">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v3121/migrate-</value>
       </list>
     </entry>
     <entry key="4.0.0">
@@ -300,6 +324,51 @@
     <entry key="4.0.4">
       <list>
         <value>WEB-INF/classes/setup/sql/migrate/v404/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.0.5">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v405/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.0.6">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v406/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.0.7">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v407/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.0">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v420/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.1">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v421/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.2">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v422/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.3">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v423/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.4">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v424/migrate-</value>
+      </list>
+    </entry>
+    <entry key="4.2.5">
+      <list>
+        <value>WEB-INF/classes/setup/sql/migrate/v425/migrate-</value>
       </list>
     </entry>
   </util:map>

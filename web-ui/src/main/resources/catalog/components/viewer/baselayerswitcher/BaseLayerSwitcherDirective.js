@@ -21,11 +21,10 @@
  * Rome - Italy. email: geonetwork@osgeo.org
  */
 
-(function() {
-  goog.provide('gn_baselayerswitcher');
+(function () {
+  goog.provide("gn_baselayerswitcher");
 
-  var module = angular.module('gn_baselayerswitcher', [
-  ]);
+  var module = angular.module("gn_baselayerswitcher", []);
 
   /**
    * @ngdoc directive
@@ -35,29 +34,48 @@
    * Provides a button and a dropdown menu to switch background layer of the
    * given map
    */
-  module.directive('gnBaselayerswitcher', [
-    'gnViewerSettings', 'gnOwsContextService', '$rootScope',
-    function(gnViewerSettings, gnOwsContextService, $rootScope) {
+  module.directive("gnBaselayerswitcher", [
+    "gnViewerSettings",
+    "gnSearchSettings",
+    "gnOwsContextService",
+    "gnWmsQueue",
+    "$rootScope",
+    "gnMapsManager",
+    "gnMap",
+    function (
+      gnViewerSettings,
+      gnSearchSettings,
+      gnOwsContextService,
+      gnWmsQueue,
+      $rootScope,
+      gnMapsManager,
+      gnMap
+    ) {
       return {
-        restrict: 'A',
-        templateUrl: '../../catalog/components/viewer/baselayerswitcher/' +
-            'partials/baselayerswitcher.html',
+        restrict: "A",
+        templateUrl:
+          "../../catalog/components/viewer/baselayerswitcher/" +
+          "partials/baselayerswitcher.html",
         scope: {
-          map: '=gnBaselayerswitcherMap'
+          map: "=gnBaselayerswitcherMap"
         },
-        link: function(scope, element, attrs) {
+        link: function (scope, element, attrs) {
           scope.layers = gnViewerSettings.bgLayers;
           scope.dropup = angular.isDefined(attrs.dropup);
           var firstLayer = scope.map.getLayers().item(0);
-          if(firstLayer && scope.layers.indexOf(firstLayer) < 0 &&
-            !scope.layers.fromCtx) {
-            scope.map.getLayers().insertAt(0, scope.layers[0]);
+          if (
+            firstLayer &&
+            scope.layers.indexOf(firstLayer) < 0 &&
+            !scope.layers.fromCtx
+          ) {
+            scope.setBgLayer(scope.layers[0]);
           }
-          scope.setBgLayer = function(layer) {
+
+          scope.setBgLayer = function (layer) {
             layer.setVisible(true);
             var layers = scope.map.getLayers();
-            if(layers.getLength() > 0) {
-              layers.item(0).set("currentBackground", false)
+            if (layers.getLength() > 0) {
+              layers.item(0).set("currentBackground", false);
               layers.removeAt(0);
             }
             layers.insertAt(0, layer);
@@ -65,39 +83,41 @@
             return false;
           };
 
-
-          scope.changeBackground = function (layer) {
-            scope.setBgLayer(layer);
-          };
-          
-          scope.$watch(function() { return gnViewerSettings.bgLayers}, 
-              function(bgLayers) {
-                if(bgLayers && bgLayers.length && bgLayers.length > 0 ) {
-                  scope.layers = bgLayers;
-                  
-                  //Do we remember the previous background layer?
-                  var i = 0;
-                  var j = 0;
-                  bgLayers.forEach(function(layer) {
-                    if(layer.get("currentBackground")) {
-                      i = j;
-                    }
-                    j++;
-                  });
-                  
-                  scope.setBgLayer(scope.layers[i]);
-                }
-          });
-
-          scope.reset = function() {
-            $rootScope.$broadcast('owsContextReseted');
+          function loadContext() {
             gnOwsContextService.loadContextFromUrl(
               gnViewerSettings.defaultContext,
               scope.map,
-              gnViewerSettings.additionalMapLayers);
+              gnViewerSettings.additionalMapLayers
+            );
+          }
+
+          scope.reset = function () {
+            $rootScope.$broadcast("owsContextReseted");
+            gnWmsQueue.clear(scope.map);
+            var mapViewerConfig = gnMap.getMapConfig()["map-" + gnMapsManager.VIEWER_MAP];
+            if (gnViewerSettings.defaultContext) {
+              loadContext();
+            } else if (mapViewerConfig.layers && mapViewerConfig.layers.length > 0) {
+              // TODO: The map layer config does not seem to work. Something to remove?
+              gnViewerSettings.bgLayers.length = 0;
+              scope.layers.length = 0;
+              gnSearchSettings.viewerMap = gnMapsManager.createMap(
+                gnMapsManager.VIEWER_MAP
+              );
+            } else {
+              var defaultContext = "../../map/config-viewer.xml";
+              console.warn(
+                "Check the map viewer configuration. \n" +
+                  "No context URL and no default layers found. \n" +
+                  "Using " +
+                  defaultContext
+              );
+              gnViewerSettings.defaultContext = defaultContext;
+              loadContext();
+            }
           };
         }
       };
-    }]);
-
+    }
+  ]);
 })();

@@ -60,18 +60,18 @@
     <!--Add all Thesaurus as first block of keywords-->
     <xsl:if test="name(preceding-sibling::*[1]) != name()">
       <xsl:call-template name="addAllThesaurus">
-        <xsl:with-param name="ref" select="../gn:element/@ref"/>
+        <xsl:with-param name="ref" select="concat('_X', ../gn:element/@ref, '_', replace(name(), ':', 'COLON'))"/>
       </xsl:call-template>
     </xsl:if>
 
     <xsl:variable name="thesaurusTitle">
       <xsl:choose>
-        <xsl:when test="normalize-space($thesaurusTitleEl/gco:CharacterString) != ''">
+        <xsl:when test="normalize-space($thesaurusTitleEl/(gco:CharacterString|gmx:Anchor)) != ''">
           <xsl:value-of select="if ($overrideLabel != '')
               then $overrideLabel
               else concat(
                       $iso19139strings/keywordFrom,
-                      normalize-space($thesaurusTitleEl/gco:CharacterString))"/>
+                      normalize-space($thesaurusTitleEl/(gco:CharacterString|gmx:Anchor)))"/>
         </xsl:when>
         <xsl:when test="normalize-space($thesaurusTitleEl/gmd:PT_FreeText/
                           gmd:textGroup/gmd:LocalisedCharacterString[
@@ -179,6 +179,11 @@
 
     <xsl:choose>
       <xsl:when test="$thesaurusConfig">
+        <!-- If defined dc:title with xml:lang use it for thesaurus label in the editor -->
+        <xsl:variable name="uiLang2code" select="xslutil:twoCharLangCode($lang, 'en')" />
+
+        <xsl:variable name="thesaurusTitleTranslated" select="$listOfThesaurus/thesaurus[title=$thesaurusTitle]/multilingualTitles/multilingualTitle[lang=$uiLang2code]/title" />
+        <xsl:variable name="thesaurusTitleForEditor" select="if (string($thesaurusTitleTranslated)) then $thesaurusTitleTranslated else $thesaurusTitle" />
 
         <!-- The thesaurus key may be contained in the MD_Identifier field or
           get it from the list of thesaurus based on its title.
@@ -205,8 +210,8 @@
         -->
         <xsl:variable name="keywords" select="string-join(
                   if ($guiLangId and gmd:keyword//*[@locale = concat('#', $guiLangId)]) then
-                    gmd:keyword//*[@locale = concat('#', $guiLangId)]/replace(text(), ',', ',,')
-                  else gmd:keyword/*[1]/replace(text(), ',', ',,'), ',')"/>
+                    gmd:keyword//*[@locale = concat('#', $guiLangId)][. != '']/replace(text(), ',', ',,')
+                  else gmd:keyword/*[1][. != '']/replace(text(), ',', ',,'), ',')"/>
 
         <!-- Define the list of transformation mode available. -->
         <xsl:variable name="transformations"
@@ -261,12 +266,14 @@
         <div data-gn-keyword-selector="{$widgetMode}"
              data-metadata-id="{$metadataId}"
              data-element-ref="{concat('_X', ../gn:element/@ref, '_replace')}"
-             data-thesaurus-title="{if (($isFlatMode and not($thesaurusConfig/@fieldset)) or $thesaurusConfig/@fieldset = 'false') then $thesaurusTitle else ''}"
+             data-thesaurus-title="{if (($isFlatMode and not($thesaurusConfig/@fieldset)) or $thesaurusConfig/@fieldset = 'false') then $thesaurusTitleForEditor else ''}"
              data-thesaurus-key="{$thesaurusKey}"
              data-keywords="{$keywords}"
              data-transformations="{$transformations}"
              data-current-transformation="{$transformation}"
              data-max-tags="{$maxTags}"
+             data-browsable="{not($thesaurusConfig/@browsable)
+                              or $thesaurusConfig/@browsable != 'false'}"
              data-order-by-id="{$orderById}"
              data-lang="{$metadataOtherLanguagesAsJson}"
              data-textgroup-only="false">
@@ -276,8 +283,14 @@
                       select="count(gmd:type/gmd:MD_KeywordTypeCode[@codeListValue='place']) > 0"/>
         <xsl:if test="$isTypePlace">
           <xsl:call-template name="render-batch-process-button">
+            <xsl:with-param name="process-label-key" select="'add-extent-from-geokeywords'"/>
             <xsl:with-param name="process-name" select="'add-extent-from-geokeywords'"/>
-            <xsl:with-param name="process-params">{"replace": true}</xsl:with-param>
+            <xsl:with-param name="process-params">{"replace": "true"}</xsl:with-param>
+          </xsl:call-template>
+          <xsl:call-template name="render-batch-process-button">
+            <xsl:with-param name="process-label-key" select="'add-one-extent-from-geokeywords'"/>
+            <xsl:with-param name="process-name" select="'add-extent-from-geokeywords'"/>
+            <xsl:with-param name="process-params">{"replace": "true", "boundingAll": "true"}</xsl:with-param>
           </xsl:call-template>
         </xsl:if>
       </xsl:when>
@@ -290,9 +303,11 @@
 
   <xsl:template name="addAllThesaurus">
     <xsl:param name="ref"/>
+    <xsl:param name="xpath" select="''" required="no"/>
+    <xsl:param name="keywordList" select="''" required="no"/>
+    <xsl:param name="transformation" select="'to-iso19139-keyword'" required="no"/>
+
     <xsl:if test="java:getSettingValue('system/metadata/allThesaurus') = 'true'">
-
-
       <xsl:variable name="thesaurusConfig"
                     as="element()?"
                     select="$thesaurusList/thesaurus[@key='external.none.allThesaurus']"/>
@@ -307,13 +322,15 @@
       <div
               data-gn-keyword-selector="tagsinput"
               data-metadata-id=""
-              data-element-ref="_X{$ref}_gmdCOLONdescriptiveKeywords"
+              data-element-ref="{$ref}"
+              data-element-xpath="{$xpath}"
               data-thesaurus-title="{{{{'selectKeyword' | translate}}}}"
               data-thesaurus-key="external.none.allThesaurus"
-              data-keywords=""
+              data-keywords="{$keywordList}"
               data-transformations="{$transformations}"
-              data-current-transformation="to-iso19139-keyword"
-              data-max-tags="" data-lang="{$metadataOtherLanguagesAsJson}"
+              data-current-transformation="{$transformation}"
+              data-max-tags=""
+              data-lang="{$metadataOtherLanguagesAsJson}"
               data-textgroup-only="false"
               class="">
       </div>

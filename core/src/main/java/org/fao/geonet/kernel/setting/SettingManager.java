@@ -1,5 +1,5 @@
 //=============================================================================
-//===	Copyright (C) 2001-2020 Food and Agriculture Organization of the
+//===	Copyright (C) 2001-2021 Food and Agriculture Organization of the
 //===	United Nations (FAO-UN), United Nations World Food Programme (WFP)
 //===	and United Nations Environment Programme (UNEP)
 //===
@@ -33,11 +33,12 @@ import org.fao.geonet.domain.HarvesterSetting;
 import org.fao.geonet.domain.Setting;
 import org.fao.geonet.domain.SettingDataType;
 import org.fao.geonet.domain.Setting_;
-import org.fao.geonet.repository.LanguageRepository;
 import org.fao.geonet.repository.SettingRepository;
 import org.fao.geonet.repository.SortUtils;
 import org.fao.geonet.repository.SourceRepository;
 import org.fao.geonet.utils.Log;
+import org.fao.geonet.web.DefaultLanguage;
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.jdom.Element;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -74,7 +75,7 @@ public class SettingManager {
     public static final ZoneId DEFAULT_SERVER_TIMEZONE = ZoneId.systemDefault();
 
     @PersistenceContext
-    private EntityManager _entityManager;
+    private EntityManager entityManager;
 
     @Autowired
     private ServletContext servletContext;
@@ -86,6 +87,12 @@ public class SettingManager {
 
     @Autowired
     SourceRepository sourceRepository;
+
+    @Autowired
+    StandardPBEStringEncryptor encryptor;
+
+    @Autowired
+    DefaultLanguage defaultLanguage;
 
     @PostConstruct
     private void init() {
@@ -111,7 +118,7 @@ public class SettingManager {
         Element env = new Element("settings");
         List<Setting> settings = repo.findAll(SortUtils.createSort(Setting_.name));
 
-        Map<String, Element> pathElements = new HashMap<String, Element>();
+        Map<String, Element> pathElements = new HashMap<>();
 
         for (Setting setting : settings) {
             if (asTree) {
@@ -183,7 +190,7 @@ public class SettingManager {
 
     public String getValue(String path, boolean nullable) {
         if (Log.isDebugEnabled(Geonet.SETTINGS)) {
-            Log.debug(Geonet.SETTINGS, "Requested setting with name: " + path);
+            Log.trace(Geonet.SETTINGS, "Requested setting with name: " + path);
         }
 
         Optional<Setting> se = repo.findById(path);
@@ -195,10 +202,27 @@ public class SettingManager {
             Log.error(Geonet.SETTINGS, "  Requested setting with name: " + path + "  not found. Add it to the settings table.");
             return null;
         }
+
         String value = se.get().getValue();
+
+        // This case occurs during the application startup, before the encryptor is initialized:
+        // value is null and storedValue has the correct value in this case.
+        // Affects OpenApiConfig and SettingManager PostConstruct that retrieve settings during the startup,
+        // before the encryptor is initialized.
+        // TODO: Improve EncryptorInitializer. For now it depends on GeonetworkDataDirectory
+        //  that requires to be initialised in GeoNetwork start method.
+        if (!encryptor.isInitialized()) {
+            if (!se.get().isEncrypted()) {
+                value = se.get().getStoredValue();
+            } else {
+                throw new IllegalStateException("Encrypted settings can't be accessed before encryptor is initialized");
+            }
+        }
+
         if (value == null && ! nullable) {
             Log.warning(Geonet.SETTINGS, "  Requested setting with name: " + path + " but null value found. Check the settings table.");
         }
+
         return value;
     }
 
@@ -287,6 +311,13 @@ public class SettingManager {
         return Integer.valueOf(value);
     }
 
+    public Integer getValueAsInt(String key, Integer defaultValue) {
+        String value = getValue(key);
+        if (value == null || value.trim().length() == 0)
+            return defaultValue;
+        return Integer.valueOf(value);
+    }
+
     /**
      * Set the value of a Setting entity
      *
@@ -356,7 +387,7 @@ public class SettingManager {
      * without using this class. For example when using an SQL script.
      */
     public final boolean refresh() throws SQLException {
-        _entityManager.getEntityManagerFactory().getCache().evict(HarvesterSetting.class);
+        entityManager.getEntityManagerFactory().getCache().evict(HarvesterSetting.class);
         return true;
     }
 
@@ -387,9 +418,8 @@ public class SettingManager {
     public
     @Nonnull
     String getSiteURL(String language) {
-        LanguageRepository languageRepository = ApplicationContextHolder.get().getBean(LanguageRepository.class);
         if (language == null) {
-            language = languageRepository.findOneByDefaultLanguage().getId();
+            language = defaultLanguage.getLanguage();
         }
 
         return getNodeURL() + language + "/";
@@ -408,8 +438,7 @@ public class SettingManager {
                 nodeId = node.getId();
             }
         } catch (Exception e) {}
-        String locServ = getBaseURL() + nodeId + "/";
-        return locServ;
+        return getBaseURL() + nodeId + "/";
     }
     /**
      * Return complete node URL eg. http://localhost:8080/geonetwork/
@@ -426,7 +455,6 @@ public class SettingManager {
     public
     @Nonnull
     String getServerURL() {
-        String baseURL = pathFinder.getBaseUrl();
         String protocol = getValue(Settings.SYSTEM_SERVER_PROTOCOL);
         String host = getValue(Settings.SYSTEM_SERVER_HOST);
         String port = getValue(Settings.SYSTEM_SERVER_PORT);
@@ -434,10 +462,10 @@ public class SettingManager {
         return protocol + "://" + host + (isPortRequired(protocol, port) ? ":" + port : "");
     }
 
-    static public boolean isPortRequired(String protocol, String port) {
-        if("http".equals(protocol) && "80".equals(port)) {
+    public static boolean isPortRequired(String protocol, String port) {
+        if (Geonet.HttpProtocol.HTTP.equals(protocol) && String.valueOf(Geonet.DefaultHttpPort.HTTP).equals(port)) {
             return false;
-        } else if("https".equals(protocol) && "443".equals(port)) {
+        } else if (Geonet.HttpProtocol.HTTPS.equals(protocol) && String.valueOf(Geonet.DefaultHttpPort.HTTPS).equals(port)) {
             return false;
         } else {
             return true;

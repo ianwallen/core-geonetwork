@@ -43,7 +43,6 @@ import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import java.util.*;
 
-import static org.fao.geonet.kernel.metadata.DefaultStatusActions.compileMessageWithIndexFields;
 import static org.fao.geonet.kernel.setting.Settings.SYSTEM_USER_LASTNOTIFICATIONDATE;
 
 /**
@@ -68,7 +67,7 @@ public class WatchListNotifier extends QuartzJobBean {
     private String permalinkApp = "catalog.search#/search?_uuid={{filter}}";
 
     @Value("${usersavedselection.watchlist.recordurl}")
-    private String permalinkRecordApp = "api/records/{{index:_uuid}}";
+    private String permalinkRecordApp = "api/records/{{index:uuid}}";
 
     public String getPermalinkApp() {
         return permalinkApp;
@@ -195,7 +194,7 @@ public class WatchListNotifier extends QuartzJobBean {
                 for (String record : updatedRecords) {
                     try {
                         listOfUpdateMessage.append(
-                            compileMessageWithIndexFields(recordMessage, record, this.language)
+                            MailUtil.compileMessageWithIndexFields(recordMessage, record, this.language)
                         );
                     } catch (Exception e) {
                         Log.error(Geonet.USER_WATCHLIST, e.getMessage(), e);

@@ -43,6 +43,8 @@ public class CswParams extends AbstractParams {
 
     public String outputSchema;
 
+    public String sortBy = "";
+
     public boolean rejectDuplicateResource;
 
     public String queryScope;
@@ -59,7 +61,10 @@ public class CswParams extends AbstractParams {
      * </pre>
      */
     public String xslfilter;
-    public List<Element> eltSearches = new ArrayList<Element>();
+
+    public List<Element> eltFilters = new ArrayList<Element>();
+
+    public Element bboxFilter;
 
     @Override
     public String getIcon() {
@@ -78,7 +83,7 @@ public class CswParams extends AbstractParams {
         super.create(node);
 
         Element site = node.getChild("site");
-        Element searches = node.getChild("searches");
+        Element filters = node.getChild("filters");
 
         capabUrl = Util.getParam(site, "capabilitiesUrl", "");
         rejectDuplicateResource = Util.getParam(site, "rejectDuplicateResource", false);
@@ -87,18 +92,18 @@ public class CswParams extends AbstractParams {
         xslfilter = Util.getParam(site, "xslfilter", "");
         xpathFilter = Util.getParam(site, "xpathFilter", "");
         outputSchema = Util.getParam(site, "outputSchema", outputSchema);
+        sortBy = Util.getParam(site, "sortBy", "");
         icon = Util.getParam(site, "icon", "default.gif");
 
-        if (searches != null) {
-            if (searches.getChild("search") != null) {
-                @SuppressWarnings("unchecked")
-                List<Element> tmp = searches.getChild("search").getChildren();
-                eltSearches = tmp;
-            } else {
-                eltSearches = new ArrayList<Element>();
-            }
+        if (filters != null) {
+            @SuppressWarnings("unchecked")
+            List<Element> tmp = filters.getChildren();
+            eltFilters = tmp;
+        } else {
+            eltFilters = new ArrayList<Element>();
         }
 
+        bboxFilter = node.getChild("bboxFilter");
 
     }
 
@@ -109,7 +114,7 @@ public class CswParams extends AbstractParams {
         super.update(node);
 
         Element site = node.getChild("site");
-        Element searches = node.getChild("searches");
+        Element filters = node.getChild("filters");
 
         capabUrl = Util.getParam(site, "capabilitiesUrl", capabUrl);
         rejectDuplicateResource = Util.getParam(site, "rejectDuplicateResource", rejectDuplicateResource);
@@ -118,20 +123,19 @@ public class CswParams extends AbstractParams {
         xpathFilter = Util.getParam(site, "xpathFilter", "");
         xslfilter = Util.getParam(site, "xslfilter", "");
         outputSchema = Util.getParam(site, "outputSchema", outputSchema);
+        sortBy = Util.getParam(site, "sortBy", "");
 
         icon = Util.getParam(site, "icon", icon);
 
-        //--- if some search queries are given, we drop the previous ones and
+        //--- if some filter queries are given, we drop the previous ones and
         //--- set these new ones
-
-        if (searches != null) {
-            if (searches.getChild("search") != null) {
-                @SuppressWarnings("unchecked")
-                List<Element> tmp = searches.getChild("search").getChildren();
-                eltSearches = tmp;
-            }
+        if (filters != null) {
+            @SuppressWarnings("unchecked")
+            List<Element> tmp = filters.getChildren();
+            eltFilters = tmp;
         }
 
+        bboxFilter = node.getChild("bboxFilter");
     }
 
     /**
@@ -150,8 +154,10 @@ public class CswParams extends AbstractParams {
         copy.xpathFilter = xpathFilter;
         copy.xslfilter = xslfilter;
         copy.outputSchema = outputSchema;
+        copy.sortBy = sortBy;
 
-        copy.eltSearches = eltSearches;
+        copy.eltFilters = eltFilters;
+        copy.bboxFilter = bboxFilter;
 
         return copy;
     }

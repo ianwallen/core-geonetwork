@@ -24,6 +24,7 @@
 
 <xsl:stylesheet xmlns:gmd="http://www.isotc211.org/2005/gmd"
                 xmlns:gco="http://www.isotc211.org/2005/gco"
+                xmlns:gmx="http://www.isotc211.org/2005/gmx"
                 xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
                 xmlns:gn-fn-index="http://geonetwork-opensource.org/xsl/functions/index"
@@ -49,7 +50,7 @@
   <xsl:variable name="allLanguages">
     <lang id="default" value="{$mainLanguage}"/>
     <xsl:for-each select="$otherLanguages">
-      <lang id="{substring(.,2,2)}" value="{util:threeCharLangCode(substring(.,2,2))}"/>
+      <lang id="{substring(., 2, 2)}" value="{util:threeCharLangCode(substring(., 2, 2))}"/>
     </xsl:for-each>
   </xsl:variable>
 
@@ -60,71 +61,47 @@
     <doc>
       <root><xsl:value-of select="name(*)"/></root>
       <xsl:copy-of select="gn-fn-index:add-field('mainLanguage', $isoDocLangId)"/>
-      <xsl:for-each select="$allLanguages[@id != 'default']">
+      <xsl:for-each select="$allLanguages/lang[@id != 'default']">
         <otherLanguage><xsl:value-of select="@value"/></otherLanguage>
       </xsl:for-each>
+
       <xsl:apply-templates mode="index" select="*"/>
     </doc>
   </xsl:template>
 
-  <!--Contacts & Organisations-->
+  <!-- Indexing Contacts & Organisations -->
   <xsl:template mode="index"
                 match="gmd:CI_ResponsibleParty[count(ancestor::node()) =  1]|
                        *[@gco:isoType='gmd:CI_ResponsibleParty'][count(ancestor::node()) = 1]">
-
-    <xsl:choose>
-      <xsl:when test="$isMultilingual">
-        <!--TODO<xsl:variable name="org">
-          <xsl:choose>
-            <xsl:when
-              test="normalize-space(gmd:organisationName/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale = $locale]) != ''">
-              <xsl:copy-of
-                select="normalize-space(gmd:organisationName/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale = $locale])"/>
-            </xsl:when>
-            <xsl:otherwise>
-              <xsl:copy-of
-                select="normalize-space((gmd:organisationName/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[./text()!=''])[1])"/>
-            </xsl:otherwise>
-          </xsl:choose>
-        </xsl:variable>
-        <xsl:variable name="name"
-                      select="normalize-space(gmd:individualName/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale = $locale])"/>
-        <xsl:variable name="mail"
-                      select="normalize-space(gmd:contactInfo/gmd:CI_Contact/gmd:address/gmd:CI_Address/gmd:electronicMailAddress[1]/gco:CharacterString)"/>
-
-        <Field name="_title"
-               string="{if ($title != '') then $title
-                                else if ($name != '') then concat($org, ' (', $name, ')')
-                                else if ($mail != '') then concat($org, ' (', $mail, ')')
-                                else $org}"
-               store="true" index="true"/>
-        <Field name="orgName" string="{$org}" store="true" index="true"/>
-        <Field name="orgNameTree" string="{$org}" store="true" index="true"/>
-        <xsl:for-each
-          select="gmd:contactInfo/*/gmd:address/*/gmd:electronicMailAddress">
-          <Field name="email" string="{gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale = $locale]}"
-                 store="true" index="true"/>
-        </xsl:for-each>-->
-
-      </xsl:when>
-    </xsl:choose>
-
     <xsl:variable name="org"
-                  select="normalize-space(gmd:organisationName/gco:CharacterString)"/>
+                  select="normalize-space((
+                          gmd:organisationName/gco:CharacterString[. != '']
+                          |gmd:organisationName/gmd:PT_FreeText/*/gmd:LocalisedCharacterString[. != '']
+                          )[1])"/>
     <xsl:variable name="name"
                   select="normalize-space(gmd:individualName/gco:CharacterString)"/>
     <xsl:variable name="mail"
                   select="normalize-space(gmd:contactInfo/gmd:CI_Contact/gmd:address/gmd:CI_Address/gmd:electronicMailAddress[1]/gco:CharacterString)"/>
+    <xsl:variable name="contactInfo"
+                  select="if ($name != '') then $name
+                          else if ($mail != '') then $mail else ''"/>
+    <xsl:variable name="orgContactInfoSuffix"
+                  select="if ($contactInfo != '')
+                          then concat(' (', $contactInfo, ')') else ''"/>
 
-    <xsl:copy-of select="gn-fn-index:add-field('resourceTitle', if ($title != '') then $title
-                            else if ($name != '') then concat($org, ' (', $name, ')')
-                            else if ($mail != '') then concat($org, ' (', $mail, ')')
-                            else $org)"/>
+    <resourceTitleObject type="object">{
+      "default": "<xsl:value-of select="gn-fn-index:json-escape(
+                                          concat($org, $orgContactInfoSuffix))"/>"
+      <xsl:for-each select="gmd:organisationName/gmd:PT_FreeText/*/gmd:LocalisedCharacterString[. != '']">
+        ,"lang<xsl:value-of select="$allLanguages/lang[
+                                      @id = current()/@locale/substring(., 2, 2)
+                                    ]/@value"/>": "<xsl:value-of select="gn-fn-index:json-escape(
+                                       concat(., $orgContactInfoSuffix))"/>"
+      </xsl:for-each>
+      }</resourceTitleObject>
+
     <xsl:copy-of select="gn-fn-index:add-field('Org', $org)"/>
 
-    <any><xsl:value-of select="$title"/></any>
-    <any><xsl:value-of select="$name"/></any>
-    <any><xsl:value-of select="$mail"/></any>
     <xsl:for-each
       select="gmd:contactInfo/*/gmd:address/*/gmd:electronicMailAddress/gco:CharacterString">
       <xsl:copy-of select="gn-fn-index:add-field('email', .)"/>
@@ -134,37 +111,34 @@
   </xsl:template>
 
 
-
-
+  <!-- Indexing extent descriptions  -->
   <xsl:template mode="index" match="gmd:EX_Extent[count(ancestor::node()) =  1]">
     <xsl:param name="locale"/>
     <xsl:choose>
       <xsl:when test="normalize-space(gmd:description) != ''">
-        <xsl:choose>
-          <xsl:when test="$isMultilingual">
-            <xsl:variable name="localizedDesc"
-                          select="gmd:description/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[@locale = $locale]"/>
-            <xsl:variable name="nonEmptyDesc"
-                          select="(gmd:description/gmd:PT_FreeText/gmd:textGroup/gmd:LocalisedCharacterString[./text()!=''])[1]"/>
-            <Field name="_title"
-                   string="{if ($title != '') then $title else if ($localizedDesc != '') then $localizedDesc
-                             else $nonEmptyDesc}"
-                   store="true" index="true"/>
-          </xsl:when>
-          <xsl:otherwise>
-            <Field name="_title"
-                   string="{if ($title != '') then $title else gmd:description/gco:CharacterString}"
-                   store="true" index="true"/>
-          </xsl:otherwise>
-        </xsl:choose>
+        <xsl:variable name="description"
+                      select="normalize-space((
+                          gmd:description/gco:CharacterString[. != '']
+                          |gmd:description/gmd:PT_FreeText/*/gmd:LocalisedCharacterString[. != '']
+                          )[1])"/>
+        <resourceTitleObject type="object">{
+          "default": "<xsl:value-of select="gn-fn-index:json-escape($description)"/>"
+          <xsl:for-each select="gmd:description/gmd:PT_FreeText/*/gmd:LocalisedCharacterString[. != '']">
+            ,"lang<xsl:value-of select="$allLanguages/lang[
+                                      @id = current()/@locale/substring(., 2, 2)
+                                    ]/@value"/>": "<xsl:value-of select="gn-fn-index:json-escape(.)"/>"
+          </xsl:for-each>
+          }</resourceTitleObject>
+
       </xsl:when>
       <xsl:otherwise>
-        <Field name="_title"
-               string="{if ($title != '') then $title
-                          else if (normalize-space(gmd:description/gco:CharacterString) != '')
-                          then gmd:description/gco:CharacterString
-                          else string-join(.//gco:Decimal, ', ')}"
-               store="true" index="true"/>
+        <xsl:variable name="name"
+                      select="concat('S:', .//gmd:southBoundLatitude/*/text(), ', W:', .//gmd:westBoundLongitude/*/text(), ', N:', .//gmd:northBoundLatitude/*/text(), ', E:',.//gmd:eastBoundLongitude/*/text())"/>
+
+        <resourceTitleObject type="object">{
+          "default": "<xsl:value-of select="gn-fn-index:json-escape($name)"/>"
+          }
+        </resourceTitleObject>
       </xsl:otherwise>
     </xsl:choose>
 
@@ -172,28 +146,46 @@
   </xsl:template>
 
 
-
+  <!-- Indexing distribution formats -->
   <xsl:template mode="index" match="gmd:MD_Format[count(ancestor::node()) =  1]">
-    <Field name="_title"
-           string="{if ($title != '') then $title else gmd:name/*/text()}"
-           store="true" index="true"/>
+    <xsl:variable name="title"
+                  select="if (gmd:version/gco:CharacterString = '' or gmd:version/gco:CharacterString = '-')
+                        then gmd:name/gco:CharacterString
+                        else concat(gmd:name/gco:CharacterString, ' ', gmd:version/gco:CharacterString)"/>
+    <resourceTitleObject type="object">{
+      "default": "<xsl:value-of select="gn-fn-index:json-escape($title)"/>"
+      }</resourceTitleObject>
 
     <xsl:call-template name="subtemplate-common-fields"/>
   </xsl:template>
 
+
+  <!-- Indexing constraints -->
   <xsl:template mode="index" match="gmd:resourceConstraints[count(ancestor::node()) =  1]">
-    <Field name="_title"
-           string="{if ($title != '') then $title
-                     else concat(
-                        string-join(gmd:MD_LegalConstraints/*/gmd:MD_RestrictionCode/@codeListValue[@codeListValue!='otherConstraints'], ', '),
-                        ' ', string-join(gmd:MD_LegalConstraints/gmd:otherConstraints/*/text(), ', '))}"
-           store="true" index="true"/>
+    <xsl:variable name="constraint" select="concat(
+                        string-join(gmd:MD_LegalConstraints/*/gmd:MD_RestrictionCode/@codeListValue[. != 'otherConstraints'], ', '),
+                        ' ',
+                        string-join(gmd:MD_LegalConstraints/gmd:otherConstraints/*/text(), ', '))"/>
+
+    <resourceTitleObject type="object">{
+      "default": "<xsl:value-of select="gn-fn-index:json-escape($constraint)"/>"
+      }
+    </resourceTitleObject>
 
     <xsl:call-template name="subtemplate-common-fields"/>
   </xsl:template>
 
-  <xsl:template name="subtemplate-common-fields">
 
+  <!-- Indexing DQ report -->
+  <xsl:template mode="index" match="gmd:DQ_DomainConsistency[count(ancestor::node()) =  1]">
+    <xsl:variable name="title"
+                  select="gmd:result/gmd:DQ_ConformanceResult/gmd:specification/gmd:CI_Citation/gmd:title/(gco:CharacterString|gmx:Anchor)"/>
+    <resourceTitleObject type="object">{
+      "default": "<xsl:value-of select="gn-fn-index:json-escape($title)"/>"
+      }</resourceTitleObject>
+
+    <xsl:call-template name="subtemplate-common-fields"/>
   </xsl:template>
 
+  <xsl:template name="subtemplate-common-fields"/>
 </xsl:stylesheet>

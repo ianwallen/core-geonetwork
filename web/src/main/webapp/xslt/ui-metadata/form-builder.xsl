@@ -211,7 +211,7 @@
             <xsl:if test="$isMultilingual">
               <xsl:attribute name="data-gn-multilingual-field"
                              select="$metadataOtherLanguagesAsJson"/>
-              <xsl:attribute name="data-main-language" select="$metadataLanguage"/>
+              <xsl:attribute name="data-main-language" select="java-xsl-util:iso639_2T_to_iso639_2B($metadataLanguage)"/>
               <xsl:attribute name="data-expanded" select="$toggleLang"/>
             </xsl:if>
 
@@ -376,6 +376,8 @@
       <null/>
     </xsl:param>
     <xsl:param name="isDisabled" select="ancestor::node()[@xlink:href]"/>
+    <xsl:param name="collapsible" select="true()" as="xs:boolean" required="no"/>
+    <xsl:param name="collapsed" select="false()" as="xs:boolean" required="no"/>
 
 
     <xsl:variable name="hasXlink" select="@xlink:href"/>
@@ -385,8 +387,10 @@
               class="{if ($hasXlink) then 'gn-has-xlink' else ''} gn-{substring-after(name(), ':')}">
 
       <legend class="{$cls}"
-              data-gn-slide-toggle=""
               data-gn-field-tooltip="{$schema}|{name()}|{name(..)}|">
+        <xsl:if test="$collapsible">
+          <xsl:attribute name="data-gn-slide-toggle" select="$collapsed"/>
+        </xsl:if>
         <!--
          The toggle title is in conflict with the element title
          required for the element tooltip
@@ -415,7 +419,12 @@
       </legend>
 
       <xsl:if test="count($attributesSnippet/*) > 0 and name($attributesSnippet/*[1]) != 'null'">
-        <div class="well well-sm gn-attr {if ($isDisplayingAttributes = true()) then '' else 'hidden'}">
+
+        <xsl:variable name="hasOnlyAttributes"
+                      select="count(*[namespace-uri() != 'http://www.fao.org/geonetwork']) = 0
+                              and count(@*) > 0"/>
+        <div class="well well-sm gn-attr {if ($isDisplayingAttributes = true() or $hasOnlyAttributes)
+                                          then '' else 'hidden'}">
           <xsl:copy-of select="$attributesSnippet"/>
         </div>
       </xsl:if>
@@ -653,11 +662,38 @@
                               id="{$id}_{@label}"/>
                       </xsl:when>
                       <xsl:when test="@use = 'data-gn-keyword-picker'">
+                        <!-- To use this directive in template fields should be provided the following attributes:
+                               - data-template-field: true to indicate a template field
+                               - data-template-field-value: value of the element
+                               - data-template-field-concept-id-value: value for the anchor link
+                               - data-template-field-element: usually gco:CharacterString
+                               - data-template-field-element-with-concept-id: usually gmx:Anchor
+
+                            Example:
+
+                            <key label="nameOfMeasure"
+                                xpath="gmd:DQ_ConceptualConsistency/gmd:nameOfMeasure"
+                                use="data-gn-keyword-picker"
+                                tooltip="gmd:nameOfMeasure">
+                             <directiveAttributes data-thesaurus-key="external.theme.httpinspireeceuropaeumetadatacodelistQualityOfServiceCriteria-QualityOfServiceCriteria"
+                                                  data-order-by-id="true"
+                                                  data-display-definition="true"
+                                                  data-template-field="true"
+                                                  data-template-field-element="gco:CharacterString"
+                                                  data-template-field-element-with-concept-id="gmx:Anchor"
+                                                  data-template-field-value="eval#gmd:DQ_ConceptualConsistency/gmd:nameOfMeasure/*/text()"
+                                                  data-template-field-concept-id-value="eval#gmd:DQ_ConceptualConsistency/gmd:nameOfMeasure/gmx:Anchor/@xlink:href"
+                                                  data-thesaurus-concept-id-attribute="xlinkCOLONhref"/>
+                           </key>
+
+                           The id of the following element should start with: template_, "real" id associated with
+                           the template field: {$id}_{@label} is created inside the directive when using template mode
+                        -->
                         <input class="form-control"
                                value="{value}"
                                data-gn-field-tooltip="{$schema}|{@tooltip}"
                                data-gn-keyword-picker=""
-                               id="{$id}_{@label}">
+                               id="template_{$id}_{@label}">
 
                           <xsl:for-each select="directiveAttributes/attribute::*">
                             <xsl:variable name="directiveAttributeName" select="name()"/>
@@ -989,9 +1025,11 @@
                       <xsl:choose>
                         <xsl:when test="starts-with(., 'xpath::')">
                           <xsl:variable name="xpath" select="substring-after(., 'xpath::')"/>
+
+
                           <xsl:attribute name="{name(.)}">
                             <saxon:call-template name="{concat('evaluate-', $schema)}">
-                              <xsl:with-param name="base" select="$metadata"/>
+                              <xsl:with-param name="base" select="$metadata//*[gn:element/@ref = $parentEditInfo/@ref]"/>
                               <xsl:with-param name="in"
                                               select="concat('/../', $xpath)"/>
                             </saxon:call-template>
@@ -1203,7 +1241,7 @@
 
               <xsl:attribute name="{$type}">
                 <xsl:value-of
-                  select="."/>
+                  select="normalize-space($valueToEdit)"/>
               </xsl:attribute>
 
               <xsl:if test="$directiveAttributes instance of node()+">
@@ -1384,6 +1422,7 @@
     <xsl:param name="editInfo"/>
     <xsl:param name="parentEditInfo" required="no"/>
     <xsl:param name="isRequired" required="no"/>
+
     <xsl:if
       test="(($parentEditInfo and (
               $parentEditInfo/@del = 'true' or
@@ -1455,6 +1494,7 @@
   -->
   <xsl:template mode="render-for-field-for-attribute" match="@*">
     <xsl:param name="ref"/>
+    <xsl:param name="class" select="''"/>
 
     <xsl:variable name="attributeName" select="name()"/>
     <xsl:variable name="attributeValue" select="."/>
@@ -1474,12 +1514,13 @@
     <xsl:variable name="fieldName"
                   select="concat('_', $ref, '_', replace($attributeName, ':', 'COLON'))"/>
 
-    <div class="form-group gn-attr-{replace($attributeName, ':', '_')}" id="gn-attr-{$fieldName}">
+
+    <div class="form-group {$class} gn-attr-{replace($attributeName, ':', '_')}" id="gn-attr-{$fieldName}">
       <label class="col-sm-4">
         <xsl:if test="$attributeName = 'xlink:href'">
           <i class="fa fa-link fa-fw"/>
         </xsl:if>
-        <xsl:value-of select="gn-fn-metadata:getLabel($schema, $attributeName, $labels)/label"/>
+        <xsl:value-of select="gn-fn-metadata:getLabel($schema, $attributeName, $labels, name(..), '', gn-fn-metadata:getXPath(.))/label"/>
       </label>
       <div class="col-sm-7">
         <xsl:variable name="isDivLevelDirective"
@@ -1587,6 +1628,7 @@
 
   <!-- Render batch process directive action -->
   <xsl:template name="render-batch-process-button">
+    <xsl:param name="process-label-key"/>
     <xsl:param name="process-name"/>
     <xsl:param name="process-params"/>
     <xsl:param name="btnClass" required="no"/>
@@ -1596,7 +1638,7 @@
         <span data-gn-batch-process-button="{$process-name}"
               data-params="{$process-params}"
               data-icon="{$btnClass}"
-              data-name="{normalize-space($strings/*[name() = $process-name])}"
+              data-name="{normalize-space($strings/*[name() = $process-label-key])}"
               data-help="{normalize-space($strings/*[name() = concat($process-name, 'Help')])}"/>
       </div>
     </div>

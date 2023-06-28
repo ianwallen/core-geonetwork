@@ -13,7 +13,7 @@ This manual is for software developers customizing or developing GeoNetwork:
   * [Eclipse IDE](ECLIPSE.md)
   * [IntelliJ IDE](INTELLIJ.md).
   
-  See [Installing from source code](https://geonetwork-opensource.org/manuals/trunk/en/maintainer-guide/installing/installing-from-source-code.html) (Maintainer Guide)
+  See [Installing from source code](https://geonetwork-opensource.org/manuals/4.0.x/en/install-guide/installing-from-source-code.html) (Installation Guide)
 
 * Writing documentation: see [Writing documentation](https://geonetwork-opensource.org/manuals/trunk/en/contributing/writing-documentation.html) (Contributing Guide).
 * Release process: See [Doing a release](https://geonetwork-opensource.org/manuals/trunk/en/contributing/doing-a-release.html) (Contributing Guide).
@@ -27,12 +27,24 @@ maintainers at: [GeoNetwork Documentation](http://geonetwork-opensource.org/manu
 
 Get GeoNetwork running - the short path:
 
-```
-git clone --depth 3 --recursive https://github.com/geonetwork/core-geonetwork.git
-cd core-geonetwork
-mvn clean install -DskipTests
-cd web
-mvn jetty:run
-```
+1. Build:
+   ```
+   git clone --depth 3 --recursive https://github.com/geonetwork/core-geonetwork.git
+   cd core-geonetwork
+   mvn clean install -DskipTests
+   ```
 
-The application is opened on http://localhost:8080/geonetwork 
+2. Elasticsearch:
+   ```
+   cd es
+   mvn install -Pes-download
+   mvn exec:exec -Des-start
+   ```
+
+3. GeoNetwork web application:
+   ```
+   cd web
+   mvn jetty:run
+   ```
+
+4. The application is opened on http://localhost:8080/geonetwork 

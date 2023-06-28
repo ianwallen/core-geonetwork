@@ -17,6 +17,8 @@
 
   <xsl:param name="doi"
              select="''"/>
+  <xsl:param name="doiProxy"
+             select="'https://www.doi.org/'"/>
   <xsl:param name="doiProtocolRegex"
              select="'(DOI|WWW:LINK-1.0-http--metadata-URL)'"/>
 
@@ -29,7 +31,8 @@
   <xsl:variable name="isDoiAlreadySet"
                 select="count(//gmd:identificationInfo/*/gmd:citation/*/
                               gmd:identifier/*/gmd:code[
-                                contains(*/text(), 'doi.org')
+                                contains(*/text(), 'datacite.org/doi/')
+                                or contains(*/text(), 'doi.org')
                                 or contains(*/@xlink:href, 'doi.org')]) > 0"/>
 
   <!--<xsl:variable name="isDoiAlreadySet"
@@ -51,7 +54,7 @@
       <gmd:identifier>
         <gmd:MD_Identifier>
           <gmd:code>
-            <gmx:Anchor xlink:href="{$doi}">
+            <gmx:Anchor xlink:href="{concat($doiProxy, $doi)}">
               <xsl:value-of select="$doi"/>
             </gmx:Anchor>
 <!--            <gco:CharacterString><xsl:value-of select="$doi"/></gco:CharacterString>-->
@@ -70,28 +73,42 @@
     </xsl:copy>
   </xsl:template>
 
-  <!-- Insert the DOI after the last onLine element of the first distributionInfo section.
-   This expect to have one onLine element at least.
-  <xsl:template match="gmd:distributionInfo[1]/*/gmd:transferOptions/*/gmd:onLine[
-                              not($isDoiAlreadySet) and
-                              name(following-sibling::*[1]) != 'gmd:onLine']"
-                priority="2">
-    <xsl:copy-of select="."/>
-    <gmd:onLine>
-      <gmd:CI_OnlineResource>
-        <gmd:linkage>
-          <gmd:URL><xsl:value-of select="$doi"/></gmd:URL>
-        </gmd:linkage>
-        <gmd:protocol>
-          <gco:CharacterString><xsl:value-of select="$doiProtocol"/></gco:CharacterString>
-        </gmd:protocol>
-        <gmd:name>
-          <gco:CharacterString><xsl:value-of select="$doiName"/></gco:CharacterString>
-        </gmd:name>
-      </gmd:CI_OnlineResource>
-    </gmd:onLine>
-  </xsl:template>
+  <!-- Insert the DOI in the first distributionInfo section
+  (a distribution format is mandatory in ISO
+  and a publisher (distributor) is required for a DOI
+  so it should always exist).
+
+  Adding a new transfer option block.
   -->
+  <xsl:template match="gmd:distributionInfo[not($isDoiAlreadySet) and position() = 1]"
+                priority="2">
+    <xsl:copy>
+      <xsl:apply-templates select="@*"/>
+      <gmd:MD_Distribution>
+        <xsl:apply-templates select="*/@*"/>
+        <xsl:apply-templates select="*/gmd:distributionFormat"/>
+        <xsl:apply-templates select="*/gmd:distributor"/>
+        <xsl:apply-templates select="*/gmd:transferOptions"/>
+        <gmd:transferOptions>
+          <gmd:MD_DigitalTransferOptions>
+            <gmd:onLine>
+              <gmd:CI_OnlineResource>
+                <gmd:linkage>
+                  <gmd:URL><xsl:value-of select="concat($doiProxy, $doi)"/></gmd:URL>
+                </gmd:linkage>
+                <gmd:protocol>
+                  <gco:CharacterString><xsl:value-of select="$doiProtocol"/></gco:CharacterString>
+                </gmd:protocol>
+                <gmd:name>
+                  <gco:CharacterString><xsl:value-of select="$doiName"/></gco:CharacterString>
+                </gmd:name>
+              </gmd:CI_OnlineResource>
+            </gmd:onLine>
+          </gmd:MD_DigitalTransferOptions>
+        </gmd:transferOptions>
+      </gmd:MD_Distribution>
+    </xsl:copy>
+  </xsl:template>
 
 
   <!-- Do a copy of every nodes and attributes -->

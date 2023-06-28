@@ -75,17 +75,17 @@
     <xsl:variable name="hasSidePanel"
                   select="exists($viewConfig/sidePanel) and $isTemplate != 's' and $isTemplate != 't'"/>
     <div id="gn-editor-container-{$metadataId}">
-      <div class="col-md-{if ($hasSidePanel) then '8' else '12'}">
+      <form id="gn-editor-{$metadataId}"
+            name="gnEditor" accept-charset="UTF-8" method="POST"
+            novalidate="" class="form-horizontal gn-editor gn-tab-{$tab} {if ($hasViewClass) then concat('gn-editor-config-css ', $viewConfig/@class) else ''}" role="form"
+            data-spy="scroll" data-target="#gn-editor-{$metadataId}-spy"
+            autocomplete="off">
+
+        <div class="col-md-{if ($hasSidePanel) then '8' else '12'}">
 
         <!--
               The main editor form.
         -->
-        <form id="gn-editor-{$metadataId}"
-              name="gnEditor" accept-charset="UTF-8" method="POST"
-              novalidate="" class="form-horizontal gn-editor gn-tab-{$tab} {if ($hasViewClass) then concat('gn-editor-config-css ', $viewConfig/@class) else ''}" role="form"
-              data-spy="scroll" data-target="#gn-editor-{$metadataId}-spy"
-              autocomplete="off">
-
           <input type="hidden" id="schema" value="{$schema}"/>
           <input type="hidden" id="template" name="template" value="{$isTemplate}"/>
           <input type="hidden" id="isService" name="type" value="{$isService}"/>
@@ -94,6 +94,8 @@
           <input type="hidden" id="title" value="{$metadataTitle}"/>
           <input type="hidden" id="language" value="{$metadataLanguage}"/>
           <input type="hidden" id="otherLanguages" value="{$metadataOtherLanguagesAsJson}"/>
+          <input type="hidden" id="resourceContainerDescription" value="{$resourceContainerDescription}"/>
+          <input type="hidden" id="resourceManagementExternalProperties" value="{$resourceManagementExternalProperties}"/>
           <input type="hidden" id="version" name="version" value="{$metadata/gn:info/version}"/>
           <input type="hidden" id="currTab" name="currTab" value="{$tab}"/>
           <input type="hidden" id="displayAttributes" name="displayAttributes"
@@ -155,13 +157,15 @@
               </saxon:call-template>
             </xsl:otherwise>
           </xsl:choose>
-        </form>
-      </div>
+        </div>
+      </form>
       <xsl:if test="$hasSidePanel">
         <div class="col-md-4 gn-editor-sidebar">
           <div class="gn-editor-tools-container">
             <xsl:apply-templates mode="form-builder"
-                                 select="$viewConfig/sidePanel/*"/>
+                                 select="$viewConfig/sidePanel/*">
+              <xsl:with-param name="base" select="$metadata"/>
+            </xsl:apply-templates>
           </div>
         </div>
       </xsl:if>

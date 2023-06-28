@@ -43,6 +43,7 @@ import org.fao.geonet.kernel.harvest.harvester.AbstractHarvester;
 import org.fao.geonet.kernel.harvest.harvester.CategoryMapper;
 import org.fao.geonet.kernel.harvest.harvester.GroupMapper;
 import org.fao.geonet.kernel.harvest.harvester.HarvestResult;
+import org.fao.geonet.kernel.search.IndexingMode;
 import org.fao.geonet.repository.MetadataRepository;
 import org.fao.geonet.repository.OperationAllowedRepository;
 import org.fao.geonet.repository.specification.MetadataSpecs;
@@ -145,8 +146,8 @@ public class LocalFilesystemHarvester extends AbstractHarvester<HarvestResult, L
 
         String language = context.getLanguage();
 
-        final AbstractMetadata metadata = metadataManager.updateMetadata(context, id, xml, false, false, false, language, changeDate,
-            true);
+        final AbstractMetadata metadata = metadataManager.updateMetadata(context, id, xml, false, false, language, changeDate,
+            true, IndexingMode.none);
 
         if (force) {
             //change ownership of metadata to new harvester (Used in OVERRIDE option)
@@ -208,7 +209,7 @@ public class LocalFilesystemHarvester extends AbstractHarvester<HarvestResult, L
 
         aligner.addCategories(metadata, params.getCategories(), localCateg, context, null, false);
 
-        metadata = metadataManager.insertMetadata(context, metadata, md, false, false, UpdateDatestamp.NO, false, false);
+        metadata = metadataManager.insertMetadata(context, metadata, md, IndexingMode.none, false, UpdateDatestamp.NO, false, false);
 
         String id = String.valueOf(metadata.getId());
 
@@ -231,19 +232,23 @@ public class LocalFilesystemHarvester extends AbstractHarvester<HarvestResult, L
     }
 
     private void runBeforeScript() throws IOException, InterruptedException {
-		if (StringUtils.isEmpty(params.beforeScript)) {
+        if (StringUtils.isEmpty(params.beforeScript)) {
 			return;
 		}
-		log.info("Running the before script: " + params.beforeScript);
-        List<String> args = new ArrayList<String>(Arrays.asList(params.beforeScript.split(" ")));
-        Process process = new ProcessBuilder(args).
-				redirectError(ProcessBuilder.Redirect.INHERIT).
-				redirectOutput(ProcessBuilder.Redirect.INHERIT).
-				start();
-		int result = process.waitFor();
-		if ( result != 0 ) {
-			log.warning("The beforeScript failed with exit value=" + Integer.toString(result));
-			throw new RuntimeException("The beforeScript returned an error: " + Integer.toString(result));
-		}
+
+        throw new InterruptedException("Script option is currently disabled.");
+        // TODO: Script MUST be limited to well known ones added by a
+        // catalog admin in the data directory. To be improved
+        //		log.info("Running the before script: " + params.beforeScript);
+        //        List<String> args = new ArrayList<String>(Arrays.asList(params.beforeScript.split(" ")));
+        //        Process process = new ProcessBuilder(args).
+        //				redirectError(ProcessBuilder.Redirect.INHERIT).
+        //				redirectOutput(ProcessBuilder.Redirect.INHERIT).
+        //				start();
+        //		int result = process.waitFor();
+        //		if ( result != 0 ) {
+        //			log.warning("The beforeScript failed with exit value=" + Integer.toString(result));
+        //			throw new RuntimeException("The beforeScript returned an error: " + Integer.toString(result));
+        //		}
 	}
 }

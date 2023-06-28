@@ -80,7 +80,6 @@
   <xsl:function name="gn-fn-render:geometry">
     <xsl:param name="geometry" as="xs:string"/>
 
-    <!-- TODO get system config -->
     <xsl:if test="$geometry">
       <img class="gn-img-extent"
            alt="{$schemaStrings/thumbnail}"
@@ -122,7 +121,7 @@
                   select="util:getIndexField(
                   $language,
                   $uuid,
-                  'resourceTitle',
+                  'resourceTitleObject',
                   $language)"/>
     <xsl:choose>
       <xsl:when test="$metadataTitle=''">
@@ -130,7 +129,7 @@
                       select="util:getIndexField(
                       $language,
                       $uuid,
-                      'resourceTitle',
+                      'resourceTitleObject',
                       $language)"/>
         <xsl:choose>
           <xsl:when test="$metadataDefaultTitle=''">

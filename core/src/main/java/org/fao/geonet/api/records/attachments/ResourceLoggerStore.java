@@ -32,6 +32,7 @@ import org.fao.geonet.domain.ISODate;
 import org.fao.geonet.domain.MetadataFileDownload;
 import org.fao.geonet.domain.MetadataFileUpload;
 import org.fao.geonet.domain.MetadataResource;
+import org.fao.geonet.domain.MetadataResourceContainer;
 import org.fao.geonet.domain.MetadataResourceVisibility;
 import org.fao.geonet.kernel.datamanager.IMetadataUtils;
 import org.fao.geonet.repository.MetadataFileDownloadRepository;
@@ -45,7 +46,6 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-import javax.resource.NotSupportedException;
 
 /**
  * Decorate a store and record put/get/delete operations in database for reporting statistics.
@@ -53,6 +53,7 @@ import javax.resource.NotSupportedException;
 public class ResourceLoggerStore extends AbstractStore {
 
     private Store decoratedStore;
+
 
     @Autowired private ThreadPool threadPool;
 
@@ -90,7 +91,7 @@ public class ResourceLoggerStore extends AbstractStore {
 
     @Override
     public ResourceHolder getResourceInternal(String metadataUuid, MetadataResourceVisibility visibility, String resourceId, Boolean approved) throws Exception {
-        throw new NotSupportedException("ResourceLoggerStore does not support getResourceInternal.");
+        throw new UnsupportedOperationException("ResourceLoggerStore does not support getResourceInternal.");
     }
 
     @Override
@@ -154,6 +155,14 @@ public class ResourceLoggerStore extends AbstractStore {
             throws Exception {
         if (decoratedStore != null) {
             return decoratedStore.getResourceDescription(context, metadataUuid, visibility, filename, approved);
+        }
+        return null;
+    }
+
+    @Override
+    public MetadataResourceContainer getResourceContainerDescription(ServiceContext context, String metadataUuid, Boolean approved) throws Exception {
+        if (decoratedStore != null) {
+            return decoratedStore.getResourceContainerDescription(context, metadataUuid, approved);
         }
         return null;
     }
@@ -248,5 +257,14 @@ public class ResourceLoggerStore extends AbstractStore {
         metadataFileUpload.setUserName(context.getUserSession().getUsername());
 
         repo.save(metadataFileUpload);
+    }
+
+    @Override
+    public void copyResources(ServiceContext context, String sourceUuid, String targetUuid,
+                              MetadataResourceVisibility metadataResourceVisibility, boolean sourceApproved, boolean targetApproved) throws Exception {
+        if (decoratedStore != null) {
+            decoratedStore.copyResources(context, sourceUuid, targetUuid, metadataResourceVisibility, sourceApproved, targetApproved);
+        }
+
     }
 }

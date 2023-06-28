@@ -47,6 +47,8 @@ public interface IMetadataStatus {
      */
     boolean isUserMetadataStatus(int userId) throws Exception;
 
+    void transferMetadataStatusOwnership(int oldUserId, int newUserId) throws Exception;
+
     /**
      * If groupOwner match regular expression defined in setting metadata/workflow/draftWhenInGroup, then set status to draft to enable
      * workflow.
@@ -97,6 +99,15 @@ public interface IMetadataStatus {
      * @throws Exception
      */
     MetadataStatus getStatus(int metadataId) throws Exception;
+
+    /**
+     * Given a metadata id, return the previous status of the metadata
+     *
+     * @param metadataId
+     * @return
+     * @throws Exception
+     */
+    MetadataStatus getPreviousStatus(int metadataId) throws Exception;
 
     /**
      * Given a metadata id, return the status of the metadata

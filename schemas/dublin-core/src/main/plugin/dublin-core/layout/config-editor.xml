@@ -50,12 +50,12 @@
 
   <!-- View configuration -->
   <views>
-    <view name="default" upAndDownControlHidden="true">
+    <view name="default" default="true" upAndDownControlHidden="true">
       <sidePanel>
+        <directive data-gn-need-help="creating-metadata"/>
         <directive data-gn-validation-report=""/>
         <directive data-gn-onlinesrc-list=""
-                   data-types="onlines"/>
-        <directive data-gn-need-help="user-guide/describing-information/creating-metadata.html"/>
+                   data-types="onlinesrc|thumbnail|parent"/>
       </sidePanel>
       <tab id="default" default="true" mode="flat">
         <section xpath="/simpledc"/>
@@ -64,12 +64,12 @@
         <for name="dc:subject"/>
       </flatModeExceptions>
     </view>
-    <view name="advanced">
+    <view name="advanced" upAndDownControlHidden="true">
       <sidePanel>
+        <directive data-gn-need-help="creating-metadata"/>
         <directive data-gn-validation-report=""/>
         <directive data-gn-onlinesrc-list=""
-                   data-types="onlines"/>
-        <directive data-gn-need-help="user-guide/describing-information/creating-metadata.html"/>
+                   data-types="onlinesrc|thumbnail|parent"/>
       </sidePanel>
       <tab id="advanced" default="true">
         <section xpath="/simpledc"/>
@@ -77,10 +77,10 @@
     </view>
     <view name="xml">
       <sidePanel>
+        <directive data-gn-need-help="creating-metadata"/>
         <directive data-gn-validation-report=""/>
         <directive data-gn-onlinesrc-list=""
-                   data-types="onlines"/>
-        <directive data-gn-need-help="user-guide/describing-information/creating-metadata.html"/>
+                   data-types="onlinesrc|thumbnail|parent"/>
       </sidePanel>
       <tab id="xml" default="true"/>
     </view>

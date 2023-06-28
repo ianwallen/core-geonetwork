@@ -135,15 +135,16 @@ public final class Xml {
         + "\uE000-\uFFFD"
         + "\ud800\udc00-\udbff\udfff"
         + "]";
+    public static final String XML_VERSION_HEADER = "<\\?xml version=['\"]1.0['\"] encoding=['\"].*['\"]\\?>\\s*";
 
-    //--------------------------------------------------------------------------
+    public static SAXBuilder getSAXBuilder(boolean validate) {
+        SAXBuilder builder = getSAXBuilderWithPathXMLResolver(validate, null);
+        Resolver resolver = ResolverWrapper.getInstance();
+        builder.setEntityResolver(resolver.getXmlResolver());
+        return builder;
+    }
 
-    /**
-     *
-     * @param validate
-     * @return
-     */
-    private static SAXBuilder getSAXBuilder(boolean validate, Path base) {
+    public static SAXBuilder getSAXBuilder(boolean validate, Path base) {
         SAXBuilder builder = getSAXBuilderWithPathXMLResolver(validate, base);
         Resolver resolver = ResolverWrapper.getInstance();
         builder.setEntityResolver(resolver.getXmlResolver());
@@ -153,6 +154,10 @@ public final class Xml {
     private static SAXBuilder getSAXBuilderWithPathXMLResolver(boolean validate, Path base) {
         SAXBuilder builder = new SAXBuilder(validate);
         builder.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        builder.setFeature("http://apache.org/xml/features/allow-java-encodings", true);
+
+        // To avoid CVE-2021-33813
+        builder.setExpandEntities(false);
 
         if (base != null) {
             NioPathHolder.setBase(base);
@@ -1114,6 +1119,10 @@ public final class Xml {
 
     /**
      * return true if the String passed in is something like XML
+     * Check for XML header first.
+     * Then use a Regular expression to see if it starts and ends with
+     * the same element or it's a self-closing element.
+     * Regex can be slow on large document.
      *
      * @param inXMLStr a string that might be XML
      * @return true of the string is XML, false otherwise
@@ -1124,21 +1133,45 @@ public final class Xml {
         Pattern pattern;
         Matcher matcher;
 
-        // Regular expression to see if it starts and ends with the same element
-        final String XML_PATTERN_STR = "<(\\S+?)(.*?)>(.*?)</\\1>";
+        if (inXMLStr.startsWith("<?xml")) {
+            return true;
+        }
+        inXMLStr = inXMLStr.replaceFirst(XML_VERSION_HEADER, "");
+
+        // Regular expression to see if it starts and ends with the same element or
+        // it's a self-closing element.
+        final String XML_PATTERN_STR = "<(\\S+?)(.*?)>(.*?)</\\1>|<(\\S+?)(.*?)/>";
 
         if (inXMLStr != null && inXMLStr.trim().length() > 0) {
-            if (inXMLStr.trim().startsWith("<")) {
+            String trimedString = inXMLStr.trim();
+            if (trimedString.startsWith("<")) {
                 pattern = Pattern.compile(XML_PATTERN_STR,
                     Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
-                matcher = pattern.matcher(inXMLStr);
+                matcher = pattern.matcher(trimedString);
                 retBool = matcher.matches();
             }
         }
 
         return retBool;
     }
+
+    /**
+     * Check if is XML and the first tag local name
+     * is rdf or something like a DCAT feed.
+     */
+    public static boolean isRDFLike(String inXMLStr) {
+        boolean retBool = false;
+        if (isXMLLike(inXMLStr)) {
+            String xml = inXMLStr.replaceFirst(XML_VERSION_HEADER, ""),
+            firstTag = xml
+                .substring(0, xml.indexOf(" "))
+                .toLowerCase();
+            retBool = firstTag.matches("<.*:(rdf|catalog|catalogrecord)\\n?");
+        }
+        return retBool;
+    }
+
 
     private static class JeevesURIResolver implements URIResolver {
 
