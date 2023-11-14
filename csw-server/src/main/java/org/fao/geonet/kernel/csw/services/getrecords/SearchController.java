@@ -59,8 +59,8 @@ import org.jdom.Attribute;
 import org.jdom.Content;
 import org.jdom.Element;
 import org.jdom.Namespace;
-import org.opengis.filter.Filter;
-import org.opengis.filter.capability.FilterCapabilities;
+import org.geotools.api.filter.Filter;
+import org.geotools.api.filter.capability.FilterCapabilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 
@@ -571,10 +571,10 @@ public class SearchController {
      * 1) gmd-csw-postprocessing.xsl : Postprocessing xsl applied for CSW service when requesting iso (gmd) output
      * 2) csw-csw-postprocessing.xsl : Postprocessing xsl applied for CSW service when requesting ogc (csw) output
      *
-     * For a custom CSW service named csw-inspire
+     * For a custom sub-portal named inspire
      *
-     * 1) gmd-csw-inspire-postprocessing.xsl : Postprocessing xsl applied for custom CSW csw-inspire service when requesting iso output
-     * 2) csw-csw-inspire-postprocessing.xsl : Postprocessing xsl applied for custom CSW csw-inspire service when requesting ogc (csw) output
+     * 1) gmd-inspire-postprocessing.xsl : Postprocessing xsl applied for custom inspire sub-portal when requesting iso output
+     * 2) csw-inspire-postprocessing.xsl : Postprocessing xsl applied for custom inspire sub-portal when requesting ogc (csw) output
      *
      * @param context Service context
      * @param schemaManager schemamanager

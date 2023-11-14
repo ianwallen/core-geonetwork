@@ -81,11 +81,11 @@
             rssFeeds: [
               {
                 // List of rss feeds links to display when the OGC API Records service is enabled
-                url: "f=rss&sortby=-createDate&size=30",
+                url: "f=rss&sortby=-createDate&limit=30",
                 label: "lastCreatedRecords"
               }
               // , {
-              //   url: "f=rss&sortby=-publicationDateForResource&size=30",
+              //   url: "f=rss&sortby=-publicationDateForResource&limit=30",
               //   label: "lastPublishedRecords"
               // }
             ]
@@ -773,6 +773,7 @@
               valuesSeparator: ","
             },
             is3DModeAllowed: false,
+            singleTileWMS: true,
             isSaveMapInCatalogAllowed: true,
             isExportMapAsImageEnabled: false,
             isAccessible: false,
@@ -1309,6 +1310,8 @@
           gnSearchSettings.mapProtocols = {
             layers: [
               "OGC:WMS",
+              "OGC:3DTILES",
+              "OGC:COG",
               "OGC:WMTS",
               "OGC:WMS-1.1.1-http-get-map",
               "OGC:WMS-1.3.0-http-get-map",
@@ -1367,7 +1370,7 @@
               _.set(this.gnCfg, p, o);
             }
             if (runAllChecks) {
-              optionInDefaultConfig = _.get(defaultConfig, p);
+              var optionInDefaultConfig = _.get(defaultConfig, p);
               if (optionInDefaultConfig === undefined) {
                 console.warn(
                   "Path " +
@@ -1403,7 +1406,7 @@
               option = _.get(config, p);
             if (angular.isObject(option) && Object.keys(option).length === 0) {
               var key = pathToken.pop();
-              parent = _.get(config, pathToken.join("."));
+              var parent = _.get(config, pathToken.join("."));
               delete parent[key];
             }
           }
@@ -1482,7 +1485,7 @@
       return angular.isDefined(this.langs[lang]);
     },
     isValidIso2Lang: function (lang) {
-      for (p in this.langs) {
+      for (var p in this.langs) {
         if (this.langs[p] === lang) {
           return true;
         }
@@ -1493,7 +1496,7 @@
       return this.langs[iso3lang] || "en";
     },
     getIso3Lang: function (iso2lang) {
-      for (p in this.langs) {
+      for (var p in this.langs) {
         if (this.langs[p] === iso2lang) {
           return p;
         }
@@ -1559,12 +1562,11 @@
 
       // Links for social media
       $scope.socialMediaLink = $location.absUrl();
-      $scope.getPermalink = gnUtilityService.getPermalink;
+      $scope.getPermalink = gnUtilityService.displayPermalink;
       $scope.fluidEditorLayout = gnGlobalSettings.gnCfg.mods.editor.fluidEditorLayout;
       $scope.fluidHeaderLayout = gnGlobalSettings.gnCfg.mods.header.fluidHeaderLayout;
       $scope.showGNName = gnGlobalSettings.gnCfg.mods.header.showGNName;
       $scope.isHeaderFixed = gnGlobalSettings.gnCfg.mods.header.isHeaderFixed;
-      $scope.isMenubarAccessible = gnGlobalSettings.gnCfg.mods.header.isMenubarAccessible;
       $scope.isLogoInHeader = gnGlobalSettings.gnCfg.mods.header.isLogoInHeader;
       $scope.isFooterEnabled = gnGlobalSettings.gnCfg.mods.footer.enabled;
 
@@ -1831,6 +1833,14 @@
                   : "";
             return angular.isFunction(this[fnName]) ? this[fnName]() : false;
           },
+          canBatchEditMetadata: function () {
+            var profile = gnConfig["metadata.batchediting.accesslevel"] || "Editor",
+              fnName =
+                profile !== ""
+                  ? "is" + profile[0].toUpperCase() + profile.substring(1) + "OrMore"
+                  : "";
+            return angular.isFunction(this[fnName]) ? this[fnName]() : false;
+          },
           canDeletePublishedMetadata: function () {
             var profile =
                 gnConfig["metadata.delete.profilePublishedMetadata"] || "Editor",
@@ -1983,7 +1993,7 @@
                 .then(function (r) {
                   $scope.searchInfo = r.data;
                   var keys = Object.keys(gnGlobalSettings.gnCfg.mods.home.facetConfig);
-                  selectedFacet = keys[0];
+                  var selectedFacet = keys[0];
 
                   for (var i = 0; i < keys.length; i++) {
                     if (

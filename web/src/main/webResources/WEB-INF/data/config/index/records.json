@@ -2,6 +2,7 @@
   "settings": {
     "index": {
       "max_result_window": ${es.index.max_result_window.limit},
+      "max_inner_result_window": ${es.index.max_inner_result_window.limit},
       "query.default_field": "any.default",
       "mapping.total_fields.limit": ${es.index.mapping.total_fields.limit},
       "analysis": {
@@ -1071,6 +1072,10 @@
                 "type": "keyword",
                 "copy_to": ["any.langita"]
               },
+              "langdut": {
+                "type": "keyword",
+                "copy_to": ["any.langdut"]
+              },
               "langspa": {
                 "type": "keyword",
                 "copy_to": ["any.langspa"]
@@ -1593,9 +1598,6 @@
       "isOpenData": {
         "type": "keyword"
       },
-      "lineage": {
-        "type": "text"
-      },
       "resolutionScaleDenominator": {
         "type": "integer"
       },
@@ -1627,6 +1629,23 @@
           },
           "pass": {
             "type": "keyword"
+          }
+        }
+      },
+      "processSteps": {
+        "type": "nested",
+        "properties": {
+          "descriptionObject": {
+            "type": "object"
+          },
+          "date": {
+            "type": "date"
+          },
+          "source": {
+            "type": "object"
+          },
+          "processor": {
+            "type": "object"
           }
         }
       },
@@ -1759,7 +1778,8 @@
             "type": "keyword"
           },
           "title": {
-            "type": "keyword"
+            "type": "keyword",
+            "copy_to": "any.common"
           },
           "origin": {
             "type": "keyword"
@@ -1836,6 +1856,9 @@
                 "copy_to": "any.common"
               },
               "type": {
+                "type": "keyword"
+              },
+              "cardinality": {
                 "type": "keyword"
               },
               "values": {
@@ -1951,6 +1974,26 @@
       },
       "userSavedCount": {
         "type": "long"
+      },
+      "resourceTemporalExtentDetails": {
+        "properties": {
+          "start": {
+            "properties": {
+              "date": {
+                "type": "date",
+                "format": "date_optional_time"
+              }
+            }
+          },
+          "end": {
+            "properties": {
+              "date": {
+                "type": "date",
+                "format": "date_optional_time"
+              }
+            }
+          }
+        }
       }
     }
   }

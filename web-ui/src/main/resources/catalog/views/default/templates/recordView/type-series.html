@@ -1,7 +1,6 @@
 <div
   class="row gn-card gn-card-{{mdView.current.record.resourceType[0]}} gn-margin-bottom gn-margin-top"
 >
-  <div ng-include="'../../catalog/views/default/templates/recordView/status.html'" />
   <div class="col-md-8 gn-record gn-{{mdView.current.record.resourceType[0]}}">
     <div class="">
       <div
@@ -11,7 +10,16 @@
     </div>
   </div>
   <div class="col-md-4 gn-md-side">
+    <div ng-include="'../../catalog/views/default/templates/recordView/status.html'" />
+
     <div gn-record-is-replaced-by="mdView.current.record.uuid"></div>
+
+    <div
+      data-ng-if="!(mdView.current.record.related.uuids
+                    && mdView.current.record.related.uuids.length > 0)"
+      class="gn-margin-top"
+      ng-include="'../../catalog/views/default/templates/recordView/thumbnails.html'"
+    ></div>
 
     <div
       class="gn-margin-top"
@@ -74,6 +82,25 @@
     ></div>
   </div>
 </div>
+
+
+<div class="row gn-section gn-section-{{mdView.current.record.resourceType[0]}}">
+  <div class="col-md-12 gn-record">
+    <h2 data-translate="">technicalInformation</h2>
+  </div>
+  <div
+    class="gn-md-side gn-nopadding-top col-md-8"
+  >
+    <div
+      class="col-3 gn-padding-bottom-lg"
+      ng-include="'../../catalog/views/default/templates/recordView/technical.html'"
+    />
+  </div>
+  <div class="col-md-4 gn-md-side gn-nopadding-top">
+    <div ng-include="'../../catalog/views/default/templates/recordView/spatial.html'" />
+  </div>
+</div>
+
 
 <div
   class="row gn-section gn-section-{{mdView.current.record.resourceType[0]}}"
