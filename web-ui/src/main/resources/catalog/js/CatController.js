@@ -1213,7 +1213,7 @@
           },
           workflowHelper: {
             enabled: false,
-            workflowAssistApps: [{ appUrl: "", appLabelKey: "", appAccessCheckUrl: "" }]
+            workflowAssistApps: [{ appUrl: "", appLabelKey: "", appGroupsAllowed: "" }]
           }
         }
       };

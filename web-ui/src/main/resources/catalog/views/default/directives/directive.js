@@ -423,37 +423,106 @@
     }
   ]);
 
-  module.directive("gnAppUrlAccessibilityCheck", [
+  module.directive("gnAppGroupsAllowedCheck", [
     "$http",
-    function ($http) {
+    "$scope",
+    function ($http, $scope) {
       return {
         restrict: "A",
         scope: {
           isAccessible: "="
         },
         link: function (scope, element, attrs) {
-          $http
-            .get(attrs.gnAppUrlAccessibilityCheck)
-            .then(function (response) {
-              // Even if we get a possible response, if the content is negative then make it non-accessible.
-              if (typeof response.body === "string") {
-                switch (response.body.toLowerCase().trim()) {
-                  case "false":
-                  case "no":
-                  case "off":
-                  case "0":
-                  case "-0":
-                    scope.isAccessible = false;
-                    return;
+          console.log("attrs");
+          console.log(attrs);
+
+          console.log("here scope");
+          console.log(scope);
+          scope.user = $scope.user;
+          console.log(scope.user);
+
+          scope.isAccessible = false;
+          loadUserGroups().then(function (userGroups) {
+            console.log(userGroups);
+            // Define the groupsAllowed and userGroups
+            //var groupsAllowed = attrs.gnAppGroupsAllowedCheck;
+            var groupsAllowed = ".*Editor,.*Reviewer";
+            //var userGroups = loadUserGroups();
+            var userGroups = ["Editor", "Reviewer"];
+
+            // Split the groupsAllowed into an array
+            var allowedGroupsArray = groupsAllowed.split(",");
+
+            // Loop through each user group
+            for (var i = 0; i < userGroups.length; i++) {
+              var userGroup = userGroups[i];
+
+              // Loop through each allowed group regex pattern
+              for (var j = 0; j < allowedGroupsArray.length; j++) {
+                var allowedGroupPattern = allowedGroupsArray[j];
+
+                // Create a regular expression object from the pattern
+                var regex = new RegExp(allowedGroupPattern);
+
+                // Check if there is a match
+                var match = regex.exec(userGroup);
+
+                if (match) {
+                  console.log(
+                    'User group "' +
+                      userGroup +
+                      '" matches allowed group pattern "' +
+                      allowedGroupPattern +
+                      '"'
+                  );
+                  // You can perform further actions here if needed
+                  scope.isAccessible = true;
                 }
               }
-              // It was executed successfully so lets return true.
-              scope.isAccessible = true;
-            })
-            .catch(function (error) {
-              // If it was not a successful request then access is denied.
-              scope.isAccessible = false;
-            });
+            }
+          });
+
+          function loadUserGroup() {
+            $http.get("../api/users/" + userIdForGroups + "/groups").then(
+              function (response) {
+                var data = response.data;
+                var userGroups = [];
+
+                // get all groups
+                for (var i = 0; i < data.length; i++) {
+                  userGroups.push(data[i].group.name);
+                }
+                return userGroups;
+              },
+              function (response) {
+                return response;
+              }
+            );
+          }
+
+          // function loadUserGroups() {
+          //   console.log("here");
+          //   console.log("here");
+          //   gnUserSearchesService.loadUserGroups();
+          //   var uniqueUserGroups = {};
+          //
+          //   var response = $http.get("../api/users/groups").then(function (response) {
+          //     angular.forEach(response.data, function (g) {
+          //       var key = g.groupId + "-" + g.userId;
+          //       if (!uniqueUserGroups[key]) {
+          //         uniqueUserGroups[key] = g;
+          //         // uniqueUserGroups[key].groupNameTranslated =
+          //         //   g.groupName === "allAdmins"
+          //         //     ? $translate.instant(g.groupName)
+          //         //     : $translate.instant("group-" + g.groupId);
+          //       }
+          //     });
+          //
+          //     return uniqueUserGroups;
+          //   });
+          //
+          //   return response;
+          // }
         }
       };
     }
