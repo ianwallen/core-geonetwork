@@ -423,7 +423,7 @@
     }
   ]);
 
-  module.directive("gnAppUrlAccessibilityCheck", [
+  module.directive("gnAppGroupsAllowedCheck", [
     "$http",
     function ($http) {
       return {
@@ -432,28 +432,67 @@
           isAccessible: "="
         },
         link: function (scope, element, attrs) {
-          $http
-            .get(attrs.gnAppUrlAccessibilityCheck)
-            .then(function (response) {
-              // Even if we get a possible response, if the content is negative then make it non-accessible.
-              if (typeof response.body === "string") {
-                switch (response.body.toLowerCase().trim()) {
-                  case "false":
-                  case "no":
-                  case "off":
-                  case "0":
-                  case "-0":
-                    scope.isAccessible = false;
-                    return;
+          scope.isAccessible = false;
+          loadUserGroups().then(function (userGroups) {
+            console.log(userGroups);
+            // Define the groupsAllowed and userGroups
+            var groupsAllowed = attrs.gnAppGroupsAllowedCheck;
+            var groupsAllowed = ".*Editor,.*Reviewer";
+            //var userGroups = loadUserGroups();
+            //var userGroups = ["Editor", "Reviewer"];
+
+            // Split the groupsAllowed into an array
+            var allowedGroupsArray = groupsAllowed.split(",");
+
+            // Loop through each user group
+            for (var i = 0; i < userGroups.length; i++) {
+              var userGroup = userGroups[i];
+
+              // Loop through each allowed group regex pattern
+              for (var j = 0; j < allowedGroupsArray.length; j++) {
+                var allowedGroupPattern = allowedGroupsArray[j];
+
+                // Create a regular expression object from the pattern
+                var regex = new RegExp(allowedGroupPattern);
+
+                // Check if there is a match
+                var match = regex.exec(userGroup);
+
+                if (match) {
+                  console.log(
+                    'User group "' +
+                      userGroup +
+                      '" matches allowed group pattern "' +
+                      allowedGroupPattern +
+                      '"'
+                  );
+                  // You can perform further actions here if needed
+                  scope.isAccessible = true;
                 }
               }
-              // It was executed successfully so lets return true.
-              scope.isAccessible = true;
-            })
-            .catch(function (error) {
-              // If it was not a successful request then access is denied.
-              scope.isAccessible = false;
+            }
+          });
+
+          function loadUserGroups() {
+            var uniqueUserGroups = {};
+
+            var response = $http.get("../api/users/groups").then(function (response) {
+              angular.forEach(response.data, function (g) {
+                var key = g.groupId + "-" + g.userId;
+                if (!uniqueUserGroups[key]) {
+                  uniqueUserGroups[key] = g;
+                  uniqueUserGroups[key].groupNameTranslated =
+                    g.groupName === "allAdmins"
+                      ? $translate.instant(g.groupName)
+                      : $translate.instant("group-" + g.groupId);
+                }
+              });
+
+              return uniqueUserGroups;
             });
+
+            return response;
+          }
         }
       };
     }
