@@ -73,6 +73,14 @@
   </div>
   <div class="col-md-4 gn-md-side">
     <div
+      class="gn-contact-col-1"
+      data-ng-if="mdView.current.record.contactForDistribution"
+      data-gn-metadata-contacts="mdView.current.record.contactForDistribution"
+      data-gn-mode="default"
+      data-layout="icon"
+    />
+          
+    <div
       data-ng-if="mdView.current.record.related.uuids"
       data-gn-related="mdView.current.record"
       data-user="user"
@@ -83,14 +91,11 @@
   </div>
 </div>
 
-
 <div class="row gn-section gn-section-{{mdView.current.record.resourceType[0]}}">
   <div class="col-md-12 gn-record">
     <h2 data-translate="">technicalInformation</h2>
   </div>
-  <div
-    class="gn-md-side gn-nopadding-top col-md-8"
-  >
+  <div class="gn-md-side gn-nopadding-top col-md-8">
     <div
       class="col-3 gn-padding-bottom-lg"
       ng-include="'../../catalog/views/default/templates/recordView/technical.html'"
@@ -100,7 +105,6 @@
     <div ng-include="'../../catalog/views/default/templates/recordView/spatial.html'" />
   </div>
 </div>
-
 
 <div
   class="row gn-section gn-section-{{mdView.current.record.resourceType[0]}}"
