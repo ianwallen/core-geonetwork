@@ -1361,14 +1361,14 @@
                               data-ng-model="opt.appLabelKey"
                             />
                             <span class="input-group-addon"
-                              >{{'ui-workflowAssistApps-appGroupsAllowed' |
+                              >{{'ui-workflowAssistApps-appExpressionAllowed' |
                               translate}}</span
                             >
                             <input
                               type="text"
                               class="form-control"
-                              id="ui-appGroupsAllowed-{{$index}}"
-                              data-ng-model="opt.appGroupsAllowed"
+                              id="ui-appExpressionAllowed-{{$index}}"
+                              data-ng-model="opt.appExpressionAllowed"
                             />
                           </div>
                         </td>
@@ -1387,7 +1387,7 @@
                           <a
                             class="btn btn-link"
                             title="{{'add' | translate}}"
-                            data-ng-click="addItem(mCfg[key], {'appUrl': '', 'appLabelKey': '', 'appGroupsAllowed': ''})"
+                            data-ng-click="addItem(mCfg[key], {'appUrl': '', 'appLabelKey': '', 'appExpressionAllowed': ''})"
                           >
                             <i class="fa fa-plus" />
                           </a>

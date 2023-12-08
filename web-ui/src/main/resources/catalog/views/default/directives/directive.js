@@ -255,6 +255,261 @@
             );
           };
 
+          function loadUserGroups(userId) {
+            return $http
+              .get("../api/users/" + userId + "/groups")
+              .then(function (response) {
+                scope.userGroups = response.data;
+              });
+          }
+
+          // Load users groups once the scope.user.id is set.
+          var loadUserGroupsUnWatch = scope.$watch(
+            "user.id",
+            function (newUserId, oldUserId) {
+              if (
+                newUserId !== undefined &&
+                newUserId !== null &&
+                newUserId !== oldUserId
+              ) {
+                // Call your function here with the updated user ID value
+                loadUserGroups(scope.user.id);
+
+                // Unregister the watch to avoid unnecessary callbacks
+                loadUserGroupsUnWatch();
+              }
+            }
+          );
+
+          /**
+           * Display the helper App Groups Checks:
+           *   - User is part of the appExpressionAllowed
+           *   - Metadata is part of the same group
+           * @param md
+           * @param user user object to used to check group profile
+           * @param appExpressionAllowed groups and profiles expression to be checked. The expression should be in the following format.
+           *     {group}:{profile}:{object}
+           *     Group - can be a regular expression defaults to all
+           *     Profile/Role - profile to be used, defaults to all
+           *     Object can be U (User) or M (Metadata Record)- defaults to user
+           *     i.e.
+           *         "" or ":" or "::"   all users, all groups for the user.
+           *         ":Editor"           all users who are editor or more.
+           *         "Sample"            all users who are part of the sample group.
+           *         "S.*:Editor:U"      all users who are and editor for group starting with S.
+           *         "S.*::M"            all metadata belonging to groups starting with S.
+           *         ":Editor:M"         all metadata where current users has editor permissions.
+           *         "S.*:Editor:M"      all metadata belonging to groups starting with S and user is an editor for the group.
+           * @returns {*|boolean|false|boolean}
+           */
+          var workflowAssistAppExpressionCache = {};
+          scope.isWorkflowAssistAppExpressionAllowed = function (
+            md,
+            user,
+            appExpressionAllowed
+          ) {
+            // If there is no expression then return true;
+            if (!appExpressionAllowed) return true;
+
+            // If user groups not loaded then we are not ready.
+            if (!scope.userGroups) return false;
+
+            // Create a unique key based on function arguments
+            var cacheKey = md.id + "-" + user.id + "-" + appExpressionAllowed;
+
+            // Check if the value is already in the cache
+            if (workflowAssistAppExpressionCache[cacheKey] !== undefined) {
+              return workflowAssistAppExpressionCache[cacheKey];
+            }
+
+            var result = false;
+            // Split the appExpressionAllowed into an array
+            var appExpressionAllowedArray = appExpressionAllowed.split(",");
+
+            // Loop through each allowed group regex pattern
+            for (var j = 0; j < appExpressionAllowedArray.length; j++) {
+              var appExpression = appExpressionAllowedArray[j];
+
+              var appExpressionArray = appExpression.split(":");
+              var appExpressionObj = {
+                groupExpression: appExpressionArray[0],
+                profile:
+                  (appExpressionArray[1]
+                    ? appExpressionArray[1][0].toUpperCase() + appExpressionArray[1].substring(1).toLowerCase()
+                    : appExpressionArray[1]),
+                type:
+                  appExpressionArray[2] && appExpressionArray[2].upperCase() === "M"
+                    ? "M"
+                    : "U"
+              };
+
+              var checkMetadataProfile = function (profile) {
+                return (
+                  ["Editor", "Reviewer", "Administrator"].includes(profile) &&
+                  ((["Editor", "Administrator"].includes(profile) && md.edit) ||
+                    (["Reviewer", "Administrator"].includes(profile) && md.canReview))
+                );
+              };
+
+              // If checking if no group expression and not profile.
+              if (!appExpressionObj.groupExpression && !appExpressionObj.profile) {
+                result = true;
+              } else if (
+                // If there is no group expression but there is a profile then check if the user/metadata has that profile privilege.
+                !appExpressionObj.groupExpression &&
+                appExpressionObj.profile
+              ) {
+                if (appExpressionObj.type === "M") {
+                  if (appExpressionObj.profile) {
+                    if (checkMetadataProfile(appExpressionObj.profile)) {
+                      result = true;
+                    } else {
+                      console.log(
+                        'User does not have metadata access "' +
+                        appExpressionObj.profile +
+                        '" access for group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+                    }
+                  }
+                } else {
+                  // Create profile check function name
+                  var fnNameOrMore =
+                    appExpressionObj.profile !== ""
+                      ? "is" + appExpressionObj.profile + "OrMore"
+                      : "";
+
+                  // If the current user has the current profile then skip this entry and continue to the next one.
+                  if (
+                    angular.isFunction(user[fnNameOrMore]) ? user[fnNameOrMore]() : false
+                  ) {
+                    result = true;
+                  } else {
+                    console.log(
+                      'User does not have profile "' +
+                      appExpressionObj.profile +
+                      '" access for group pattern "' +
+                      appExpression +
+                      '"'
+                    );
+                  }
+                }
+              } else {
+                // There is a group expression so lets parse it.
+                var matchedGroupExpression = [];
+                if (appExpressionObj.groupExpression) {
+                  // Loop through each user group
+                  for (var i = 0; i < scope.userGroups.length; i++) {
+                    var userGroup = scope.userGroups[i];
+
+                    // Create a regular expression object from the pattern
+                    var regex = new RegExp(appExpressionObj.groupExpression);
+
+                    // Check if there is a match
+                    var match = regex.exec(userGroup.group.name);
+
+                    if (match) {
+                      console.log(
+                        'User profile group "' +
+                        userGroup.group.name +
+                        "." +
+                        userGroup.user.profile +
+                        '" matches allowed group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+
+                      matchedGroupExpression.push({
+                        groupName: userGroup.group.name,
+                        groupId: userGroup.group.id
+                      });
+                    }
+                  }
+                }
+
+                if (
+                  // If checking users and there is no group expression but there is a profile then check if the user has that profile.
+                  appExpressionObj.groupExpression &&
+                  !appExpressionObj.profile
+                ) {
+                  if (appExpressionObj.type === "M") {
+                    if (
+                      matchedGroupExpression.some((obj) => obj.groupId === md.groupOwner)
+                    ) {
+                      result = true;
+                    } else {
+                      console.log(
+                        'User does not have metadata group "' +
+                        md.groupOwner +
+                        '" access for group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+                    }
+                  } else {
+                    if (matchedGroupExpression.length !== 0) {
+                      result = true;
+                    } else {
+                      console.log(
+                        'User does not have group for group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+                    }
+                  }
+                } else {
+                  if (appExpressionObj.type === "M") {
+                    if (
+                      checkMetadataProfile(appExpressionObj.profile) &&
+                      matchedGroupExpression.some((obj) => obj.groupId === md.groupOwner)
+                    ) {
+                      result = true;
+                    } else {
+                      console.log(
+                        'User does not have profile access to groups in group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+                    }
+                  } else {
+                    // We have a group and profile in the expression.
+                    var found = false;
+                    for (var i = 0; i < matchedGroupExpression.length; i++) {
+                      // Create profile check function name
+                      var fnNameForGroup =
+                        appExpressionObj.profile !== ""
+                          ? "is" + appExpressionObj.profile + "ForGroup"
+                          : "";
+
+                      // If the current user has the current profile then skip this entry and continue to the next one.
+                      // If the group function exist then admins automatically pass.
+                      if (
+                        angular.isFunction(user[fnNameForGroup])
+                          ? user.isAdmin() || user[fnNameForGroup](matchedGroupExpression[i].groupId)
+                          : false
+                      ) {
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (found) {
+                      result = true;
+                    } else {
+                      console.log(
+                        'User does not have profile access to groups in group pattern "' +
+                        appExpression +
+                        '"'
+                      );
+                    }
+                  }
+                }
+              }
+            }
+            workflowAssistAppExpressionCache[cacheKey] = result;
+            return result;
+          };
+
           loadTasks();
           loadWorkflowStatus();
 
@@ -423,108 +678,4 @@
     }
   ]);
 
-  module.directive("gnAppGroupsAllowedCheck", [
-    "$http",
-    "$scope",
-    function ($http, $scope) {
-      return {
-        restrict: "A",
-        scope: {
-          isAccessible: "="
-        },
-        link: function (scope, element, attrs) {
-          console.log("attrs");
-          console.log(attrs);
-
-          console.log("here scope");
-          console.log(scope);
-          scope.user = $scope.user;
-          console.log(scope.user);
-
-          scope.isAccessible = false;
-          loadUserGroups().then(function (userGroups) {
-            console.log(userGroups);
-            // Define the groupsAllowed and userGroups
-            //var groupsAllowed = attrs.gnAppGroupsAllowedCheck;
-            var groupsAllowed = ".*Editor,.*Reviewer";
-            //var userGroups = loadUserGroups();
-            var userGroups = ["Editor", "Reviewer"];
-
-            // Split the groupsAllowed into an array
-            var allowedGroupsArray = groupsAllowed.split(",");
-
-            // Loop through each user group
-            for (var i = 0; i < userGroups.length; i++) {
-              var userGroup = userGroups[i];
-
-              // Loop through each allowed group regex pattern
-              for (var j = 0; j < allowedGroupsArray.length; j++) {
-                var allowedGroupPattern = allowedGroupsArray[j];
-
-                // Create a regular expression object from the pattern
-                var regex = new RegExp(allowedGroupPattern);
-
-                // Check if there is a match
-                var match = regex.exec(userGroup);
-
-                if (match) {
-                  console.log(
-                    'User group "' +
-                      userGroup +
-                      '" matches allowed group pattern "' +
-                      allowedGroupPattern +
-                      '"'
-                  );
-                  // You can perform further actions here if needed
-                  scope.isAccessible = true;
-                }
-              }
-            }
-          });
-
-          function loadUserGroup() {
-            $http.get("../api/users/" + userIdForGroups + "/groups").then(
-              function (response) {
-                var data = response.data;
-                var userGroups = [];
-
-                // get all groups
-                for (var i = 0; i < data.length; i++) {
-                  userGroups.push(data[i].group.name);
-                }
-                return userGroups;
-              },
-              function (response) {
-                return response;
-              }
-            );
-          }
-
-          // function loadUserGroups() {
-          //   console.log("here");
-          //   console.log("here");
-          //   gnUserSearchesService.loadUserGroups();
-          //   var uniqueUserGroups = {};
-          //
-          //   var response = $http.get("../api/users/groups").then(function (response) {
-          //     angular.forEach(response.data, function (g) {
-          //       var key = g.groupId + "-" + g.userId;
-          //       if (!uniqueUserGroups[key]) {
-          //         uniqueUserGroups[key] = g;
-          //         // uniqueUserGroups[key].groupNameTranslated =
-          //         //   g.groupName === "allAdmins"
-          //         //     ? $translate.instant(g.groupName)
-          //         //     : $translate.instant("group-" + g.groupId);
-          //       }
-          //     });
-          //
-          //     return uniqueUserGroups;
-          //   });
-          //
-          //   return response;
-          // }
-        }
-      };
-    }
-  ]);
 })();

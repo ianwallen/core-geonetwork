@@ -144,10 +144,7 @@
           href=""
           class="mdWorkflowAssistMenuItem"
           data-ng-href="{{app.appUrl.replace('{uuid}', md.getUuid()).replace('{lang}', lang).replace('{isoLang}', iso2Lang)}}"
-          data-ng-if="(app.appUrl !== null && app.appUrl.trim() !== '')"
-          gn-app-groups-allowed-check="{{app.appGroupsAllowed}}"
-          is-accessible="linkIsAccessible"
-          ng-hide="!linkIsAccessible"
+          data-ng-if="(app.appUrl !== null && app.appUrl.trim() !== '' && isWorkflowAssistAppExpressionAllowed(md, user, app.appExpressionAllowed))"
           target="_blank"
           rel="noopener"
         >

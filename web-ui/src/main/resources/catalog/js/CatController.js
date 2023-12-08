@@ -1213,7 +1213,9 @@
           },
           workflowHelper: {
             enabled: false,
-            workflowAssistApps: [{ appUrl: "", appLabelKey: "", appGroupsAllowed: "" }]
+            workflowAssistApps: [
+              { appUrl: "", appLabelKey: "", appExpressionAllowed: "" }
+            ]
           }
         }
       };
