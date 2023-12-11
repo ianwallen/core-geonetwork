@@ -333,10 +333,10 @@
               var appExpressionArray = appExpression.split(":");
               var appExpressionObj = {
                 groupExpression: appExpressionArray[0],
-                profile:
-                  (appExpressionArray[1]
-                    ? appExpressionArray[1][0].toUpperCase() + appExpressionArray[1].substring(1).toLowerCase()
-                    : appExpressionArray[1]),
+                profile: appExpressionArray[1]
+                  ? appExpressionArray[1][0].toUpperCase() +
+                    appExpressionArray[1].substring(1).toLowerCase()
+                  : appExpressionArray[1],
                 type:
                   appExpressionArray[2] && appExpressionArray[2].upperCase() === "M"
                     ? "M"
@@ -366,10 +366,10 @@
                     } else {
                       console.log(
                         'User does not have metadata access "' +
-                        appExpressionObj.profile +
-                        '" access for group pattern "' +
-                        appExpression +
-                        '"'
+                          appExpressionObj.profile +
+                          '" access for group pattern "' +
+                          appExpression +
+                          '"'
                       );
                     }
                   }
@@ -388,10 +388,10 @@
                   } else {
                     console.log(
                       'User does not have profile "' +
-                      appExpressionObj.profile +
-                      '" access for group pattern "' +
-                      appExpression +
-                      '"'
+                        appExpressionObj.profile +
+                        '" access for group pattern "' +
+                        appExpression +
+                        '"'
                     );
                   }
                 }
@@ -412,12 +412,12 @@
                     if (match) {
                       console.log(
                         'User profile group "' +
-                        userGroup.group.name +
-                        "." +
-                        userGroup.user.profile +
-                        '" matches allowed group pattern "' +
-                        appExpression +
-                        '"'
+                          userGroup.group.name +
+                          "." +
+                          userGroup.user.profile +
+                          '" matches allowed group pattern "' +
+                          appExpression +
+                          '"'
                       );
 
                       matchedGroupExpression.push({
@@ -441,10 +441,10 @@
                     } else {
                       console.log(
                         'User does not have metadata group "' +
-                        md.groupOwner +
-                        '" access for group pattern "' +
-                        appExpression +
-                        '"'
+                          md.groupOwner +
+                          '" access for group pattern "' +
+                          appExpression +
+                          '"'
                       );
                     }
                   } else {
@@ -453,8 +453,8 @@
                     } else {
                       console.log(
                         'User does not have group for group pattern "' +
-                        appExpression +
-                        '"'
+                          appExpression +
+                          '"'
                       );
                     }
                   }
@@ -468,8 +468,8 @@
                     } else {
                       console.log(
                         'User does not have profile access to groups in group pattern "' +
-                        appExpression +
-                        '"'
+                          appExpression +
+                          '"'
                       );
                     }
                   } else {
@@ -486,7 +486,8 @@
                       // If the group function exist then admins automatically pass.
                       if (
                         angular.isFunction(user[fnNameForGroup])
-                          ? user.isAdmin() || user[fnNameForGroup](matchedGroupExpression[i].groupId)
+                          ? user.isAdmin() ||
+                            user[fnNameForGroup](matchedGroupExpression[i].groupId)
                           : false
                       ) {
                         found = true;
@@ -498,8 +499,8 @@
                     } else {
                       console.log(
                         'User does not have profile access to groups in group pattern "' +
-                        appExpression +
-                        '"'
+                          appExpression +
+                          '"'
                       );
                     }
                   }
@@ -677,5 +678,4 @@
       };
     }
   ]);
-
 })();
