@@ -338,7 +338,7 @@
                     appExpressionArray[1].substring(1).toLowerCase()
                   : appExpressionArray[1],
                 type:
-                  appExpressionArray[2] && appExpressionArray[2].upperCase() === "M"
+                  appExpressionArray[2] && appExpressionArray[2].toUpperCase() === "M"
                     ? "M"
                     : "U"
               };
