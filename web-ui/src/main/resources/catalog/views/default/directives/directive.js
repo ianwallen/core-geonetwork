@@ -266,11 +266,10 @@
           // Load users groups once the scope.user.id is set.
           var loadUserGroupsUnWatch = scope.$watch(
             "user.id",
-            function (newUserId, oldUserId) {
+            function (newUserId) {
               if (
                 newUserId !== undefined &&
-                newUserId !== null &&
-                newUserId !== oldUserId
+                newUserId !== null
               ) {
                 // Call your function here with the updated user ID value
                 loadUserGroups(scope.user.id);
