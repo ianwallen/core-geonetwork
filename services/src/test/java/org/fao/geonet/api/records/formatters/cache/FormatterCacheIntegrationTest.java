@@ -66,7 +66,7 @@ public class FormatterCacheIntegrationTest extends AbstractServiceIntegrationTes
 
     @Autowired
     private SystemInfo systemInfo;
-    private FilesystemStore fsStore;
+    private PersistentStore fsStore;
     private FormatterCache formatterCache;
 
     private String metadataId;
@@ -80,7 +80,7 @@ public class FormatterCacheIntegrationTest extends AbstractServiceIntegrationTes
 
         this.metadataId = importer.getMetadataIds().get(0);
 
-        this.fsStore = _applicationContext.getBean(FilesystemStore.class);
+        this.fsStore = _applicationContext.getBean("fsStore", PersistentStore.class);
         this.formatterCache = _applicationContext.getBean(FormatterCache.class);
         this.stagingProfile = systemInfo.getStagingProfile();
         systemInfo.setStagingProfile(SystemInfo.STAGE_PRODUCTION);

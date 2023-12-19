@@ -56,7 +56,6 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.SystemInfo;
-import org.fao.geonet.api.records.attachments.FilesystemStore;
 import org.fao.geonet.api.records.attachments.FilesystemStoreResourceContainer;
 import org.fao.geonet.api.records.attachments.Store;
 import org.fao.geonet.constants.Geonet;
@@ -102,7 +101,6 @@ import org.geotools.api.referencing.operation.MathTransform;
 import org.owasp.esapi.errors.EncodingException;
 import org.owasp.esapi.reference.DefaultEncoder;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -638,8 +636,7 @@ public final class XslUtil {
      * @return url to access the resource. Or null if not supported
      */
     public static MetadataResourceContainer getResourceContainerDescription(String metadataUuid, Boolean approved) throws Exception {
-        Store store = BeanFactoryAnnotationUtils.qualifiedBeanOfType(ApplicationContextHolder.get().getBeanFactory(), Store.class, "filesystemStore");
-
+        Store store = ApplicationContextHolder.get().getBean("filesystemStore", Store.class);
         if (store != null) {
             if (store.getResourceManagementExternalProperties() != null && store.getResourceManagementExternalProperties().isFolderEnabled()) {
                 ServiceContext context = ServiceContext.get();
@@ -659,7 +656,7 @@ public final class XslUtil {
      * @return the windows parameters to be used.
      */
     public static Store.ResourceManagementExternalProperties getResourceManagementExternalProperties() {
-        Store store = BeanFactoryAnnotationUtils.qualifiedBeanOfType(ApplicationContextHolder.get().getBeanFactory(), Store.class, "filesystemStore");
+        Store store = ApplicationContextHolder.get().getBean("filesystemStore", Store.class);
         if (store != null) {
             return store.getResourceManagementExternalProperties();
         }
@@ -1251,7 +1248,7 @@ public final class XslUtil {
                 Matcher m = Pattern.compile(settingManager.getNodeURL() + "api/records/(.*)/attachments/(.*)$").matcher(url);
                 BufferedImage image;
                 if (m.find()) {
-                    Store store = ApplicationContextHolder.get().getBean(FilesystemStore.class);
+                    Store store = ApplicationContextHolder.get().getBean("filesystemStore", Store.class);
                     try (Store.ResourceHolder file = store.getResourceInternal(
                         m.group(1),
                         MetadataResourceVisibility.PUBLIC,
