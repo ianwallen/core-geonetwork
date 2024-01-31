@@ -60,11 +60,14 @@ public class Page extends GeonetEntity implements Serializable {
     private String label;
     private String icon;
 
+    private String conditionExpression;
+
     public Page() {
 
     }
 
-    public Page(PageIdentity pageIdentity, byte[] data, String link, PageFormat format, List<PageSection> sections, PageStatus status, String label, String icon) {
+    public Page(PageIdentity pageIdentity, byte[] data, String link, PageFormat format, List<PageSection> sections, PageStatus status, String label,
+                String icon, String conditionExpression) {
         super();
         this.pageIdentity = pageIdentity;
         this.data = data;
@@ -74,10 +77,11 @@ public class Page extends GeonetEntity implements Serializable {
         this.status = status;
         this.label = label;
         this.icon = icon;
+        this.conditionExpression = conditionExpression;
     }
 
     public enum PageStatus {
-        PUBLIC, PUBLIC_ONLY, PRIVATE, HIDDEN;
+        PUBLIC, PUBLIC_ONLY, PRIVATE, HIDDEN, USER_EXPRESSION, RECORD_EXPRESSION;
     }
 
     public enum PageFormat {
@@ -86,7 +90,7 @@ public class Page extends GeonetEntity implements Serializable {
 
     // These are the sections where is shown the link to the Page object
     public enum PageSection {
-        TOP, FOOTER, MENU, SUBMENU, CUSTOM_MENU1, CUSTOM_MENU2, CUSTOM_MENU3;
+        TOP, FOOTER, MENU, SUBMENU, RECORD, CUSTOM_MENU1, CUSTOM_MENU2, CUSTOM_MENU3;
     }
 
     public enum PageExtension {
@@ -146,6 +150,10 @@ public class Page extends GeonetEntity implements Serializable {
         return icon;
     }
 
+    public String getConditionExpression() {
+        return conditionExpression;
+    }
+
     public void setPageIdentity(PageIdentity pageIdentity) {
         this.pageIdentity = pageIdentity;
     }
@@ -174,6 +182,9 @@ public class Page extends GeonetEntity implements Serializable {
         this.label = label;
     }
 
+    public void setConditionExpression(String conditionExpression) {
+        this.conditionExpression = conditionExpression;
+    }
     public void setIcon(String icon) {
         this.icon = icon;
     }

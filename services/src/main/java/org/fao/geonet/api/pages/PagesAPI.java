@@ -27,6 +27,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jeeves.server.UserSession;
+import jeeves.server.context.ServiceContext;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.fao.geonet.api.ApiParams;
@@ -34,14 +36,21 @@ import org.fao.geonet.api.ApiUtils;
 import org.fao.geonet.api.exception.ResourceAlreadyExistException;
 import org.fao.geonet.api.exception.ResourceNotFoundException;
 import org.fao.geonet.api.exception.WebApplicationException;
+import org.fao.geonet.api.records.model.related.RelatedItemType;
 import org.fao.geonet.api.tools.i18n.LanguageUtils;
 import org.fao.geonet.domain.Profile;
+import org.fao.geonet.domain.ReservedGroup;
+import org.fao.geonet.domain.UserGroup;
 import org.fao.geonet.domain.page.Page;
 import org.fao.geonet.domain.page.PageIdentity;
+import org.fao.geonet.repository.UserGroupRepository;
 import org.fao.geonet.repository.page.PageRepository;
+import org.fao.geonet.repository.specification.UserGroupSpecs;
+import org.fao.geonet.util.UserUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
@@ -49,6 +58,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.constraints.NotNull;
@@ -57,6 +67,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
@@ -78,9 +89,16 @@ public class PagesAPI {
 
     private final LanguageUtils languageUtils;
 
-    public PagesAPI(PageRepository pageRepository, LanguageUtils languageUtils) {
+    private UserGroupRepository userGroupRepository;
+
+
+    private final RoleHierarchy roleHierarchy;
+
+    public PagesAPI(PageRepository pageRepository, LanguageUtils languageUtils, UserGroupRepository userGroupRepository, RoleHierarchy roleHierarchy) {
         this.pageRepository = pageRepository;
         this.languageUtils = languageUtils;
+         this.userGroupRepository = userGroupRepository;
+        this.roleHierarchy = roleHierarchy;
     }
 
     private static void setDefaultLink(Page page) {
@@ -156,6 +174,8 @@ public class PagesAPI {
         Page.PageStatus status = pageProperties.getStatus();
         String language = pageProperties.getLanguage();
         String pageId = pageProperties.getPageId();
+        String conditionExpression = pageProperties.getConditionExpression();
+
         Page.PageFormat format = pageProperties.getFormat();
 
         if (language != null) {
@@ -182,6 +202,10 @@ public class PagesAPI {
 
             if (status != null) {
                 newPage.setStatus(status);
+            }
+
+            if (conditionExpression != null) {
+                newPage.setConditionExpression(conditionExpression);
             }
 
             pageRepository.save(newPage);
@@ -240,7 +264,9 @@ public class PagesAPI {
                 pageProperties.getSections() != null ? pageProperties.getSections() : pageToUpdate.getSections(),
                 pageProperties.getStatus() != null ? pageProperties.getStatus() : pageToUpdate.getStatus(),
                 newLabel != null ? newLabel : pageToUpdate.getLabel(),
-                newIcon != null ? newIcon : pageToUpdate.getIcon());
+                newIcon != null ? newIcon : pageToUpdate.getIcon(),
+                pageProperties.getConditionExpression() != null ? pageProperties.getConditionExpression() : pageToUpdate.getConditionExpression()
+            );
 
             pageRepository.save(pageCopy);
             pageRepository.delete(pageToUpdate);
@@ -380,6 +406,7 @@ public class PagesAPI {
         @RequestParam(value = "language", required = false) final String language,
         @RequestParam(value = "section", required = false) final Page.PageSection section,
         @RequestParam(value = "format", required = false) final Page.PageFormat format,
+        @RequestParam(value = "metadataUuid", required = false) final String metadataUuid,
         @Parameter(hidden = true) final HttpSession session) {
 
         final UserSession us = ApiUtils.getUserSession(session);
@@ -391,23 +418,11 @@ public class PagesAPI {
             unfilteredResult = pageRepository.findByPageIdentityLanguage(language);
         }
 
+        List<Page> filterPages = filterPages(session, unfilteredResult, section, metadataUuid);
         final List<org.fao.geonet.api.pages.PageProperties> filteredResult = new ArrayList<>();
 
-        for (final Page page : unfilteredResult) {
-            if (page.getStatus().equals(Page.PageStatus.HIDDEN) && us.getProfile() == Profile.Administrator
-                || page.getStatus().equals(Page.PageStatus.PRIVATE) && us.getProfile() != null && us.getProfile() != Profile.Guest
-                || page.getStatus().equals(Page.PageStatus.PUBLIC)
-                || page.getStatus().equals(Page.PageStatus.PUBLIC_ONLY) && !us.isAuthenticated()) {
-                if (section == null) {
-                    filteredResult.add(new org.fao.geonet.api.pages.PageProperties(page));
-                } else {
-                    final List<Page.PageSection> sections = page.getSections();
-                    final boolean containsRequestedSection = sections.contains(section);
-                    if (containsRequestedSection) {
-                        filteredResult.add(new org.fao.geonet.api.pages.PageProperties(page));
-                    }
-                }
-            }
+        for (final Page page : filterPages) {
+           filteredResult.add(new org.fao.geonet.api.pages.PageProperties(page));
         }
 
         return new ResponseEntity<>(filteredResult, HttpStatus.OK);
@@ -501,15 +516,186 @@ public class PagesAPI {
         if (page == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } else {
-            final UserSession us = ApiUtils.getUserSession(session);
-            if (page.getStatus().equals(Page.PageStatus.HIDDEN) && us.getProfile() != Profile.Administrator) {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            } else if (page.getStatus().equals(Page.PageStatus.PRIVATE) && (us.getProfile() == null || us.getProfile() == Profile.Guest)) {
+            List<Page> pages = filterPages(session, new ArrayList<>(Arrays.asList(page)), null, null);
+
+            if (pages == null || pages.size() == 0) {
                 return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             } else {
                 return new ResponseEntity<>(new org.fao.geonet.api.pages.PageProperties(page), HttpStatus.OK);
             }
         }
+    }
+
+    private List<Page> filterPages(final HttpSession session, final List<Page> unfilteredResult, Page.PageSection section,
+                                   String metadataUuid) {
+        final List<Page> filteredResult = new ArrayList<>();
+        final UserSession us = ApiUtils.getUserSession(session);
+
+        for (final Page page : unfilteredResult) {
+            if (page.getStatus().equals(Page.PageStatus.HIDDEN) && us.getProfile() == Profile.Administrator
+                || page.getStatus().equals(Page.PageStatus.PRIVATE) && us.getProfile() != null && us.getProfile() != Profile.Guest
+                || page.getStatus().equals(Page.PageStatus.PUBLIC)
+                || page.getStatus().equals(Page.PageStatus.PUBLIC_ONLY) && !us.isAuthenticated()
+                || page.getStatus().equals(Page.PageStatus.USER_EXPRESSION) && isUserExpression(session, page.getConditionExpression())
+                || page.getStatus().equals(Page.PageStatus.RECORD_EXPRESSION) && isRecordExpression(session, metadataUuid, page.getConditionExpression())
+            ) {
+                if (section == null) {
+                    filteredResult.add(page);
+                } else {
+                    if (page.getSections().contains(section)) {
+                        filteredResult.add(page);
+                    }
+                }
+            }
+        }
+        return filteredResult;
+    }
+
+    private static class MatchedGroupExpression {
+        private String groupName;
+        private int groupId;
+
+        public MatchedGroupExpression(String groupName, int groupId) {
+            this.groupName = groupName;
+            this.groupId = groupId;
+        }
+
+        public String getGroupName() {
+            return groupName;
+        }
+
+        public int getGroupId() {
+            return groupId;
+        }
+    }
+
+
+    /**
+     * User expression test.
+     *
+     * Expressions is a comma separated list of groups and profiles for the user.
+     * If any of the expressions match then it will return true.
+     * The expressions are in the following format.
+     * {group}:{profile}
+     *     Group - can be a regular expression defaults to all
+     *     Profile/Role - profile to be used, defaults to all
+     * i.e.
+     *     "" or ":"           all users.
+     *     ":Editor"           all users who are editor or more.
+     *     "Sample"            all users who are part of the sample group.
+     *     "Sample,Sample2"    all users who are part of the sample group or the sample 2 group.
+     *     "S.*:Editor"        all users who are and editor for group starting with S.
+     *
+     * @param session session to get current session information.
+     * @param conditionExpressions users condition expression to check againt.
+     * @return true if the use passes any of the expressions tested and false if they all fail.
+     */
+    boolean isUserExpression(HttpSession session, String conditionExpressions) {
+
+        if (conditionExpressions == null) {
+            return true;
+        }
+
+        UserSession us = ApiUtils.getUserSession(session);
+        if (!us.isAuthenticated()) {
+            return false;
+        }
+
+        String[] conditionExpressionArray = conditionExpressions.split(",");
+
+        for (String conditionExpression : conditionExpressionArray) {
+            String[] expressionArray = conditionExpression.split(":");
+            String groupExpression = expressionArray[0];
+            String profile = null;
+            if (expressionArray.length > 1 && expressionArray[1] != null && !expressionArray[1].isEmpty()) {
+                profile = Character.toUpperCase(expressionArray[1].charAt(0)) + expressionArray[1].substring(1).toLowerCase();
+            }
+
+            boolean groupAllowed = false;
+            if (StringUtils.isBlank(groupExpression) || Profile.Administrator.equals(us.getProfile())) {
+                groupAllowed = true;
+            } else {
+                // Create a regular expression pattern from the expression
+                Pattern pattern = Pattern.compile(groupExpression, Pattern.CASE_INSENSITIVE);
+
+                // If the groups match the reserved groups all or internet then it is allowed.
+                if (pattern.matcher(ReservedGroup.all.name()).find() ||
+                    pattern.matcher(ReservedGroup.intranet.name()).find()) {
+                    groupAllowed = true;
+                } else {
+
+                    List<UserGroup> userGroupsToProcess = userGroupRepository.findAll(
+                        UserGroupSpecs.hasUserId(us.getUserIdAsInt()));
+
+                    for (UserGroup ug : userGroupsToProcess) {
+                        if (pattern.matcher(ug.getProfile().name()).find()) {
+                            groupAllowed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            boolean profileAllowed;
+            if (StringUtils.isBlank(profile)) {
+                profileAllowed = true;
+            } else {
+                if (!UserUtil.hasHierarchyRole(profile, this.roleHierarchy)) {
+                    profileAllowed = true;
+                } else {
+                    profileAllowed = false;
+                }
+            }
+
+            if (profileAllowed && groupAllowed) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * Record expression test.
+     *
+     * Expressions is a ?????comma separated list of groups and profiles for the user.
+     * If any of the expressions match then it will return true.
+     * The expressions are in the following format.
+     * {group}:{profile}
+     *     Group - can be a regular expression defaults to all
+     *     Profile/Role - profile to be used, defaults to all
+     * i.e.
+     *     "" or ":"         all metadata.
+     *     "S.*:"            all metadata belonging to groups starting with S.
+     *     ":Editor"         all metadata where current users has editor permissions.
+     *     "S.*:Editor"      all metadata belonging to groups starting with S and user is an editor for the group.
+     *
+     * @param session session to get current session information.
+     * @param conditionExpressions users condition expression to check againt.
+     * @return true if the use passes any of the expressions tested and false if they all fail.
+     */
+    boolean isRecordExpression(HttpSession session, String metadataUuid, String conditionExpressions) {
+        if (conditionExpressions == null) {
+            return true;
+        }
+
+        call(ServiceContext context, HttpSession httpSession, HttpServletRequest request,
+            HttpServletResponse response,
+            String endPoint, String body,
+            String selectionBucket,
+            RelatedItemType[] relatedTypes)
+
+        String[] conditionExpressionArray = conditionExpressions.split(",");
+
+        for (String conditionExpression : conditionExpressionArray) {
+            String[] expressionArray = conditionExpression.split(":");
+            String groupExpression = expressionArray[0];
+            String profile = null;
+            if (expressionArray.length > 1 && expressionArray[1] != null && !expressionArray[1].isEmpty()) {
+                profile = Character.toUpperCase(expressionArray[1].charAt(0)) + expressionArray[1].substring(1).toLowerCase();
+            }
+        }
+        return false;
     }
 
     /**
@@ -536,7 +722,7 @@ public class PagesAPI {
      */
     protected Page getEmptyHiddenDraftPage(final String language, final String pageId, final String label, final String icon, final Page.PageFormat format) {
         final List<Page.PageSection> sections = new ArrayList<>();
-        return new Page(new PageIdentity(language, pageId), null, null, format, sections, Page.PageStatus.HIDDEN, label, icon);
+        return new Page(new PageIdentity(language, pageId), null, null, format, sections, Page.PageStatus.HIDDEN, label, null);
     }
 
     /**

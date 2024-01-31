@@ -21,6 +21,7 @@ public class PageProperties implements Serializable {
     private String label;
     private String icon;
     private Page.PageFormat format;
+    private String conditionExpression;
     private Page page;
 
     public PageProperties() {
@@ -35,6 +36,7 @@ public class PageProperties implements Serializable {
         sections = p.getSections();
         status = p.getStatus();
         label = p.getLabel();
+        conditionExpression = p.getConditionExpression();
         icon = p.getIcon();
     }
 
@@ -105,6 +107,14 @@ public class PageProperties implements Serializable {
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public String getConditionExpression() {
+        return conditionExpression;
+    }
+
+    public void setConditionExpression(String conditionExpression) {
+        this.conditionExpression = conditionExpression;
     }
 
     public String getIcon() {
