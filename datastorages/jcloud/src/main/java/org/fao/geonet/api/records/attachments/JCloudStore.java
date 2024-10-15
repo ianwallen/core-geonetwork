@@ -136,9 +136,25 @@ public class JCloudStore extends AbstractStore {
                                                        StorageMetadata storageMetadata, int metadataId, boolean approved) {
         String filename = getFilename(metadataUuid, resourceId);
 
+        Date changedDate;
+        String changedDatePropertyName = jCloudConfiguration.getExternalResourceManagementChangedDatePropertyName();
+            if (storageMetadata.getUserMetadata().containsKey(changedDatePropertyName)) {
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                String changedDateValue = storageMetadata.getUserMetadata().get(changedDatePropertyName);
+                changedDate = formatter.parse(changedDateValue);
+            } else {
+                changedDate = storageMetadata.getLastModified();
+            }
+        }
+
         String versionValue = null;
         if (jCloudConfiguration.isVersioningEnabled()) {
-            versionValue = storageMetadata.getETag(); // ETAG is cryptic may need some other value?
+            String versionPropertyName = jCloudConfiguration.getExternalResourceManagementVersionPropertyName();
+            if (storageMetadata.getUserMetadata().containsKey(versionPropertyName)) {
+                versionValue = storageMetadata.getUserMetadata().get(versionPropertyName);
+            } else {
+                versionValue = storageMetadata.getETag();
+            }
         }
 
         MetadataResourceExternalManagementProperties.ValidationStatus validationStatus = MetadataResourceExternalManagementProperties.ValidationStatus.UNKNOWN;
@@ -157,7 +173,7 @@ public class JCloudStore extends AbstractStore {
             getMetadataResourceExternalManagementProperties(context, metadataId, metadataUuid, visibility, resourceId, filename, storageMetadata.getETag(), storageMetadata.getType(), validationStatus);
 
         return new FilesystemStoreResource(metadataUuid, metadataId, filename,
-            settingManager.getNodeURL() + "api/records/", visibility, storageMetadata.getSize(), storageMetadata.getLastModified(), versionValue, metadataResourceExternalManagementProperties, approved);
+            settingManager.getNodeURL() + "api/records/", visibility, storageMetadata.getSize(), changedDate, versionValue, metadataResourceExternalManagementProperties, approved);
     }
 
     protected static String getFilename(final String key) {
@@ -215,21 +231,31 @@ public class JCloudStore extends AbstractStore {
 
         Map<String, String> properties = null;
 
-         try {
+        try {
             StorageMetadata storageMetadata = jCloudConfiguration.getClient().getBlobStore().blobMetadata(jCloudConfiguration.getContainerName(), key);
+
             if (storageMetadata != null) {
-                properties = storageMetadata.getUserMetadata();
+                Set<String> excludeList = jCloudConfiguration.getPropertyExculudeList();
+
+                // Copy existing properties except for items from the exclude list.
+                properties = storageMetadata.getUserMetadata().entrySet().stream()
+                    .filter(entry -> !excludeList.contains(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             }
         } catch (ContainerNotFoundException ignored) {
             // ignored
         }
 
-
         if (properties == null) {
             properties = new HashMap<>();
         }
 
-        addProperties(metadataUuid, properties, changeDate, additionalProperties);
+        // If changeDate not supplied then default to now.
+        addProperties(metadataUuid, properties, (changeDate == null ? new Date() : changeDate), additionalProperties);
+
+        // Update/set version
+        setPropertiesVersion(properties);
+
 
         Blob blob = jCloudConfiguration.getClient().getBlobStore().blobBuilder(key)
             .payload(is)
@@ -243,6 +269,40 @@ public class JCloudStore extends AbstractStore {
 
         return createResourceDescription(context, metadataUuid, visibility, filename, blobResults.getMetadata(), metadataId, approved);
 
+    }
+
+    protected void setPropertiesVersion(Map<String, String> properties) {
+    //Todo: add logic to set the vresion
+        //Todo: add logic to set the vresion
+        //Todo: add logic to set the vresion
+        //Todo: add logic to set the vresion
+        //Todo: add logic to set the vresion
+        if(!StringUtils.isEmpty(jCloudConfiguration.getExternalResourceManagementVersionPropertyName())) {
+        // Parse the current version label
+            currentVersionLabel = properties.containskey(jCloudConfiguration.getExternalResourceManagementVersionPropertyName()))
+        String[] versionParts = currentVersionLabel.split("\\.");
+        int majorVersion = Integer.parseInt(versionParts[0]);
+        int minorVersion = Integer.parseInt(versionParts[1]);
+
+        // Increment the major version and reset the minor version
+        majorVersion++;
+        minorVersion = 0;
+
+        // Create the new version label
+        String newVersionLabel = majorVersion + "." + minorVersion;
+
+        // Create a new blob with the updated payload and version metadata
+        Blob newBlob = blobStore.blobBuilder(blobName)
+            .payload(newPayload)
+            .userMetadata(Map.of("versionLabel", newVersionLabel))
+            .build();
+
+        // Upload the new version
+        blobStore.putBlob(containerName, newBlob);
+
+        // Return the new version label
+        return newVersionLabel;
+        }
     }
 
     protected void addProperties(String metadataUuid, Map<String, String> properties, Date changeDate, Map<String, String> additionalProperties) {

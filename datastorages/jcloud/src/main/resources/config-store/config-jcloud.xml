@@ -53,10 +53,13 @@
         <property name="externalResourceManagementValidationStatusPropertyName" value="${jcloud.external.resource.management.validation.status.property.name}"/>
         <property name="externalResourceManagementValidationStatusDefaultValue" value="${jcloud.external.resource.management.validation.status.default.value}"/>
         <property name="externalResourceManagementChangedDatePropertyName" value="${jcloud.external.resource.management.changed.date.property.name}"/>
+        <property name="externalResourceManagementCreatedDatePropertyName" value="${jcloud.external.resource.management.created.date.property.name}"/>
 
         <property name="versioningEnabled" value="${jcloud.versioning.enabled}"/>
+        <property name="externalResourceManagementVersionPropertyName" value="${jcloud.external.resource.management.version.property.name}"/>
 
         <property name="metadataUUIDPropertyName" value="${jcloud.metadata.uuid.property.name}"/>
+        <property name="metadataPropertyExculudeList" value="${jcloud.metadata.property.exclude.list}"/>
     </bean>
     <bean id="filesystemStore" class="org.fao.geonet.api.records.attachments.JCloudStore" />
     <bean id="resourceStore"

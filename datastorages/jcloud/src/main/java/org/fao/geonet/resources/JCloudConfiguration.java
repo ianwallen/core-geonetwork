@@ -69,6 +69,11 @@ public class JCloudConfiguration {
     private String externalResourceManagementChangedDatePropertyName;
 
     /**
+     * Property name for storing the creation date of the record.
+     */
+    private String externalResourceManagementCreatedDatePropertyName;
+
+    /**
      * Property name for validation status that is expected to be an integer with values of null, 0, 1, 2
      * (See MetadataResourceExternalManagementProperties.ValidationStatus for code meaning)
      * If null then validation status will default to UNKNOWN.
@@ -86,7 +91,18 @@ public class JCloudConfiguration {
      * Enable option to add versioning in the link to the resource.
      */
     private Boolean versioningEnabled;
+    /**
+     * Property name for storing the version information JCloud does not support versioning.
+     */
+    private String externalResourceManagementVersionPropertyName;
 
+    /**
+     * Property name for identifying fields that should not be carried over to the next version when updating field.
+     * i.e. assume a migration was performed and a new migration_source_id was added.  It when creating a new version,
+     *      you may not want migration_source_id carried over to the next version.
+     */
+    private String metadataPropertyExculudeList;
+    private Set<String> propertyExculudeList = null;
 
     public void setProvider(String provider) {
         this.provider = provider;
@@ -225,6 +241,14 @@ public class JCloudConfiguration {
         this.versioningEnabled = BooleanUtils.toBooleanObject(versioningEnabled);
     }
 
+    public String getExternalResourceManagementVersionPropertyName() {
+        return externalResourceManagementVersionPropertyName;
+    }
+
+    public void setExternalResourceManagementVersionPropertyName(String externalResourceManagementVersionPropertyName) {
+        this.externalResourceManagementVersionPropertyName = externalResourceManagementVersionPropertyName;
+    }
+
     public String getMetadataUUIDPropertyName() {
        return metadataUUIDPropertyName;
     }
@@ -240,6 +264,15 @@ public class JCloudConfiguration {
     public void setExternalResourceManagementChangedDatePropertyName(String externalResourceManagementChangedDatePropertyName) {
         this.externalResourceManagementChangedDatePropertyName = externalResourceManagementChangedDatePropertyName;
     }
+
+    public String getExternalResourceManagementCreatedDatePropertyName() {
+        return externalResourceManagementCreatedDatePropertyName;
+    }
+
+    public void setExternalResourceManagementCreatedDatePropertyName(String externalResourceManagementCreatedDatePropertyName) {
+        this.externalResourceManagementCreatedDatePropertyName = externalResourceManagementCreatedDatePropertyName;
+    }
+
     public String getExternalResourceManagementValidationStatusPropertyName() {
         return externalResourceManagementValidationStatusPropertyName;
     }
@@ -262,6 +295,24 @@ public class JCloudConfiguration {
             }
         }
         return this.defaultStatus;
+    }
+
+    public String getMetadataPropertyExculudeList() {
+        return metadataPropertyExculudeList;
+    }
+
+    public void setMetadataPropertyExculudeList(String metadataPropertyExculudeList) {
+        this.metadataPropertyExculudeList = metadataPropertyExculudeList;
+    }
+
+    public Set<String> getPropertyExculudeList() {
+        if (propertyExculudeList == null) {
+            propertyExculudeList = Arrays.stream(metadataPropertyExculudeList.split(","))
+                .map(String::trim)
+                .filter(field -> !field.isEmpty())
+                .collect(Collectors.toSet());
+        }
+        return propertyExculudeList;
     }
 
     @PostConstruct
@@ -311,7 +362,8 @@ public class JCloudConfiguration {
         String[] names = {
             getMetadataUUIDPropertyName(),
             getExternalResourceManagementChangedDatePropertyName(),
-            getExternalResourceManagementValidationStatusPropertyName()
+            getExternalResourceManagementValidationStatusPropertyName(),
+            getExternalResourceManagementCreatedDatePropertyName()
         };
 
         JCloudMetadataNameValidator.validateMetadataNamesForProvider(provider, names);
